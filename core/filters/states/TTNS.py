@@ -158,6 +158,7 @@ async def start_accept_ttns(call: CallbackQuery, state: FSMContext, callback_dat
     else:
         log.debug("Алкогольная накладная")
         boxs = await utm.get_box_info_from_Waybill(url_wb)
+        log.info(boxs)
         await state.update_data(ttn_egais=ttn_egais, boxs=boxs, id_f2r=id_f2r, id_wb=id_wb)
         await call.message.delete()
         text = '➖➖➖➖ℹ️<b><u>Инструкция</u></b>ℹ️➖➖➖➖\n' \
