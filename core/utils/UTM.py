@@ -302,7 +302,7 @@ class UTM():
             result.append(boxes(Identity, Quantity, amc, InformF2RegId))
         files = {'xml_file': CURL.divirgence_ttn(fsrar=self.get_fsrar(), boxes=result, ttn_egais=ttn_egais)}
         async with httpx.AsyncClient() as client:
-            response = (await client.post(f'http://{self.ip}:{self.port}/opt/in/WayBillAct_v4', files=files))
+            response = await client.post(f'http://{self.ip}:{self.port}/opt/in/WayBillAct_v4', files=files)
         return response
 
     async def get_box_info_from_Waybill(self, url_WB):
