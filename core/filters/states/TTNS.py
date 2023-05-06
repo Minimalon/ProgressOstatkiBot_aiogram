@@ -165,6 +165,7 @@ async def start_accept_ttns(call: CallbackQuery, state: FSMContext, callback_dat
                'Для приема ТТН отправьте фото штрих-кодов с коробок, либо ввидите штрих-код текстом. Можно отправлять по одному, либо сразу несколько фото.\n' \
                'Пример фото:'
         await bot.send_photo(call.message.chat.id, FSInputFile(os.path.join(config.dir_path, 'files', 'startAccept.jpg')), caption=text)
+        log.info(await state.get_data())
         await bot.send_message(call.message.chat.id, texts.accept_text(boxs), reply_markup=getKeyboard_accept_ttn(await state.get_data()))
         logger.info(await state.get_data())
         await state.set_state(StateTTNs.accept_ttn)
