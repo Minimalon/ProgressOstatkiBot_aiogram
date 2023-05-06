@@ -33,6 +33,9 @@ async def registration(message: Message, bot: Bot):
         log.info("Прошел регистрацию")
         await message.answer(texts.menu, reply_markup=inline.getKeyboard_startMenu(), parse_mode='HTML')
 
+async def my_id(message: Message):
+    await message.answer(f'Ваш ID: <code>{message.chat.id}</code>')
+
 
 
 

@@ -3,6 +3,7 @@ import asyncio
 import aiogram.exceptions
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
+from aiogram.fsm.storage.redis import RedisStorage
 
 from core.handlers import basic, contact
 from core.filters.states import ostatki, TTNS
@@ -22,10 +23,12 @@ async def start():
 
     bot = Bot(token=config.token, parse_mode='HTML')
     await get_commands(bot)
-    dp = Dispatcher()
+    storage = RedisStorage.from_url(config.redisStorage)
+    dp = Dispatcher(storage=storage)
 
     # COMMANDS
     dp.message.register(basic.get_start, Command(commands=['start']))
+    dp.message.register(basic.my_id, Command(commands=['id']))
 
     # CONTACT REGISTRATION
     dp.message.register(contact.get_true_contact, F.contact, IsTrueContact())
