@@ -94,7 +94,7 @@ def getKeyboard_accept_ttn(state_info):
     id_wb = state_info.get('id_wb')
     ttn_egais = state_info.get('ttn_egais')
     admin = state_info.get('admin')
-    scaned = all((box.scaned for box in boxs))
+    scaned = all([box.scaned for box in boxs])
     if scaned:
         kb.button(text="Подтвердить накладную", callback_data=SendAcceptTTN(id_f2r=id_f2r, id_wb=id_wb, ttn=ttn_egais))
     elif admin and not scaned:
