@@ -1,8 +1,7 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from core.database.progressDB import get_cash_info
 from core.utils.callbackdata import *
-
+from loguru import logger
 
 def getKeyboard_startMenu():
     kb = InlineKeyboardBuilder()
@@ -94,6 +93,8 @@ def getKeyboard_accept_ttn(state_info):
     id_wb = state_info.get('id_wb')
     ttn_egais = state_info.get('ttn_egais')
     admin = state_info.get('admin')
+    logger.debug(boxs)
+    logger.debug([box.scaned for box in boxs])
     scaned = all([box.scaned for box in boxs])
     if scaned:
         kb.button(text="Подтвердить накладную", callback_data=SendAcceptTTN(id_f2r=id_f2r, id_wb=id_wb, ttn=ttn_egais))
