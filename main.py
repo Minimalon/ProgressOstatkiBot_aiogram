@@ -1,5 +1,6 @@
+#!/usr/bin/env python3.10
+# -*- coding: utf-8 -*-
 import asyncio
-
 import aiogram.exceptions
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
@@ -66,8 +67,7 @@ async def start():
     # TTNS LIST
     dp.callback_query.register(TTNS.choose_list_ttns, F.data == 'list_ttns')
     dp.callback_query.register(TTNS.info_ttn, ListTTN.filter())
-    dp.callback_query.register(TTNS.menu_back_ttns, F.data == 'menu_ttns') # Кнопка "Назад"
-
+    dp.callback_query.register(TTNS.menu_back_ttns, F.data == 'menu_ttns')  # Кнопка "Назад"
 
     try:
         await dp.start_polling(bot)
