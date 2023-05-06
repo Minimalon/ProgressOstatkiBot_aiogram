@@ -150,5 +150,4 @@ def divirgence_ttn(fsrar, boxes, ttn_egais):
 		</ns:WayBillAct_v4>
 	</ns:Document>
 </ns:Documents>'''
-    with open(os.path.join(config.dir_path, 'files', 'text.xml'), 'w+') as file:
-        file.write(doc)
+    return doc
