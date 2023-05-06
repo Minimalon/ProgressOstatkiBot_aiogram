@@ -24,9 +24,8 @@ async def start():
 
     bot = Bot(token=config.token, parse_mode='HTML')
     await get_commands(bot)
-    # storage = RedisStorage.from_url(config.redisStorage)
-    # dp = Dispatcher(storage=storage)
-    dp = Dispatcher()
+    storage = RedisStorage.from_url(config.redisStorage)
+    dp = Dispatcher(storage=storage)
 
     # Калбэки с прошлого бота для регистрации
     dp.callback_query.register(basic.get_start_callback, F.data == 'cb_last_ostatki')
