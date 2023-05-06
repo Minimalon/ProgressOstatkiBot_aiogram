@@ -521,11 +521,11 @@ async def send_divirgence_ttn(call: CallbackQuery, state: FSMContext):
     ttn_egais = state_info.get('ttn_egais')
     response = await utm.send_divirgence_ttn(url_wb, url_f2r, await get_boxs(state_info.get('boxs')), ttn_egais)
     if response.status_code == 200:
+        await utm.add_to_whitelist(url_wb, await get_boxs(state_info.get('boxs')), state_info.get('cash').split('-')[1])
         async with httpx.AsyncClient() as client:
             await client.delete(url_f2r)
             await client.delete(url_wb)
         log.success(f'Приняли накладную "{ttn_egais}"')
-        await utm.add_to_whitelist(url_wb, await get_boxs(state_info.get('boxs')), state_info.get('cash').split('-')[1])
         await call.message.edit_text("✅Акт расхождения успешно отправлен\n")
         await state.clear()
     else:
