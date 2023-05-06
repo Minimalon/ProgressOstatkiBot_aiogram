@@ -94,6 +94,7 @@ async def choose_entity(message: Message, state: FSMContext, bot: Bot):
     await message.answer(texts.choose_entity, reply_markup=getKeyboard_ttns_entity(cash_info, UTM_8082, UTM_18082))
     await state.update_data(cash=cash_info.name)
 
+
 async def enter_inn(call: CallbackQuery, state: FSMContext, callback_data: TTNSChooseEntity):
     inn, fsrar, ip, port = (callback_data.inn, callback_data.fsrar, callback_data.ip, callback_data.port)
     log = logger.bind(first_name=call.message.chat.first_name, chat_id=call.message.chat.id, inn=inn, fsrar=fsrar, ip=ip, port=port)
@@ -105,7 +106,7 @@ async def enter_inn(call: CallbackQuery, state: FSMContext, callback_data: TTNSC
     await state.set_state(StateTTNs.menu_ttns)
 
 
-async def menu_ttns(message: Message,state: FSMContext):
+async def menu_ttns(message: Message, state: FSMContext):
     log = logger.bind(first_name=message.chat.first_name, chat_id=message.chat.id)
     data = await state.get_data()
     inn = data.get('inn')
@@ -115,7 +116,6 @@ async def menu_ttns(message: Message,state: FSMContext):
     else:
         log.error('Ввели неверный ИНН')
         await message.answer(texts.error_head + "Вы ввели неверный ИНН\nПопробуйте снова.", reply_markup=getKeyboard_tehpod_url())
-
 
 
 async def menu_back_ttns(call: CallbackQuery):
@@ -158,14 +158,12 @@ async def start_accept_ttns(call: CallbackQuery, state: FSMContext, callback_dat
     else:
         log.debug("Алкогольная накладная")
         boxs = await utm.get_box_info_from_Waybill(url_wb)
-        log.info(boxs)
         await state.update_data(ttn_egais=ttn_egais, boxs=boxs, id_f2r=id_f2r, id_wb=id_wb)
         await call.message.delete()
         text = '➖➖➖➖ℹ️<b><u>Инструкция</u></b>ℹ️➖➖➖➖\n' \
                'Для приема ТТН отправьте фото штрих-кодов с коробок, либо ввидите штрих-код текстом. Можно отправлять по одному, либо сразу несколько фото.\n' \
                'Пример фото:'
         await bot.send_photo(call.message.chat.id, FSInputFile(os.path.join(config.dir_path, 'files', 'startAccept.jpg')), caption=text)
-        log.info(await state.get_data())
         await bot.send_message(call.message.chat.id, texts.accept_text(boxs), reply_markup=getKeyboard_accept_ttn(await state.get_data()))
         logger.info(await state.get_data())
         await state.set_state(StateTTNs.accept_ttn)
@@ -191,13 +189,22 @@ async def wait_busy(state: FSMContext):
     await state.update_data(busy=True)
 
 
+async def get_boxs(state_data):
+    boxinfo = namedtuple('Box', 'name capacity boxnumber count_bottles scaned')
+    boxs = state_data.get('boxs')
+    result = []
+    for name, capacity, boxnumber, count_bottles, scaned in boxs:
+        result.append(boxinfo(name, capacity, boxnumber, count_bottles, scaned))
+    return result
+
+
 async def message_accept_ttns(message: Message, state: FSMContext, bot: Bot):
     await wait_busy(state)
     log = logger.bind(first_name=message.chat.first_name, chat_id=message.chat.id)
     data = await state.get_data()
     messages = message.text.split()
     log.info(f'Написали штрихкода "{messages}"')
-    boxs = data.get('boxs')
+    boxs = await get_boxs(data.get('boxs'))
     result = [box for box in boxs if box.scaned]
     new_boxs = namedtuple('Box', 'name capacity boxnumber count_bottles scaned')
 
@@ -241,7 +248,7 @@ async def mediagroup_accept_ttns(messages: List[Message], state: FSMContext, bot
     data = await state.get_data()
     chat_id = messages[0].chat.id
     log = logger.bind(first_name=messages[0].chat.first_name, chat_id=chat_id)
-    boxs = data.get('boxs')
+    boxs = await get_boxs(data.get('boxs'))
     barcodes = []
     result = [box for box in boxs if box.scaned]
     barcode_path = os.path.join(config.dir_path, 'files', 'barcodes', str(chat_id))
@@ -322,7 +329,7 @@ async def photo_accept_ttns(message: Message, state: FSMContext, bot: Bot):
     log = logger.bind(first_name=message.chat.first_name, chat_id=chat_id)
 
     # Коробки
-    boxs = data.get('boxs')
+    boxs = await get_boxs(data.get('boxs'))
     boxsnumbers = [box.boxnumber for box in boxs]
     result = [box for box in boxs if box.scaned]
     barcodes = []
@@ -400,7 +407,7 @@ async def document_accept_ttn(message: Message, state: FSMContext, bot: Bot):
     log = logger.bind(first_name=message.chat.first_name, chat_id=chat_id)
 
     # Коробки
-    boxs = data.get('boxs')
+    boxs = await get_boxs(data.get('boxs'))
     boxsnumbers = [box.boxnumber for box in boxs]
     result = [box for box in boxs if box.scaned]
     barcodes = []
@@ -476,7 +483,7 @@ async def send_accept_ttn(call: CallbackQuery, state: FSMContext, callback_data:
     url_f2r = f'{url}/FORM2REGINFO/{state_info.get("id_f2r")}'
     url_wb = f'{url}/WayBill_v4/{state_info.get("id_wb")}'
     utm = UTM(ip=state_info.get('ip'), port=state_info.get('port'))
-    boxs = state_info.get('boxs')
+    boxs = await get_boxs(state_info.get('boxs'))
     cash = state_info.get('cash').split('-')[1]
     logger.info('accept')
     response = await utm.send_WayBillv4(callback_data.ttn)
@@ -498,7 +505,7 @@ async def send_accept_ttn(call: CallbackQuery, state: FSMContext, callback_data:
 async def choose_divirgence_ttn(call: CallbackQuery, state: FSMContext, bot: Bot):
     await state.set_state(StateTTNs.choose_divirgence_ttn)
     data = await state.get_data()
-    text = texts.divirgence_text(data.get('boxs'))
+    text = texts.divirgence_text(await get_boxs(data.get('boxs')))
     await call.message.edit_text(text)
     text = ('Акт расхождения - это частичное подтвеждение накладной\n'
             'Вы уверены что хотите отправить акт расхождения?')
@@ -513,13 +520,13 @@ async def send_divirgence_ttn(call: CallbackQuery, state: FSMContext):
     url_f2r = f'{url}/FORM2REGINFO/{state_info.get("id_f2r")}'
     url_wb = f'{url}/WayBill_v4/{state_info.get("id_wb")}'
     ttn_egais = state_info.get('ttn_egais')
-    response = await utm.send_divirgence_ttn(url_wb, url_f2r, state_info.get('boxs'), ttn_egais)
+    response = await utm.send_divirgence_ttn(url_wb, url_f2r, await get_boxs(state_info.get('boxs')), ttn_egais)
     if response.status_code == 200:
         async with httpx.AsyncClient() as client:
             await client.delete(url_f2r)
             await client.delete(url_wb)
         log.success(f'Приняли накладную "{ttn_egais}"')
-        await utm.add_to_whitelist(url_wb, state_info.get('boxs'), state_info.get('cash').split('-')[1])
+        await utm.add_to_whitelist(url_wb, await get_boxs(state_info.get('boxs')), state_info.get('cash').split('-')[1])
         await call.message.edit_text("✅Акт расхождения успешно отправлен\n")
         await state.clear()
     else:
@@ -531,7 +538,7 @@ async def send_divirgence_ttn(call: CallbackQuery, state: FSMContext):
 async def back_to_accept_ttn(call: CallbackQuery, state: FSMContext):
     log = logger.bind(first_name=call.message.chat.first_name, chat_id=call.message.chat.id)
     data = await state.get_data()
-    boxs = data.get('boxs')
+    boxs = await get_boxs(data.get('boxs'))
     log.info('Нажали "Нет" при отправке акта расхождения')
     await call.message.edit_text(texts.accept_text(boxs), reply_markup=getKeyboard_accept_ttn(await state.get_data()))
     await state.set_state(StateTTNs.accept_ttn)

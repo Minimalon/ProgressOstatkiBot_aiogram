@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from core.utils.callbackdata import *
@@ -87,15 +89,21 @@ def getKeyboard_choose_ttn(TTNs: list):
 
 
 def getKeyboard_accept_ttn(state_info):
+    async def get_boxs(state_data):
+        boxinfo = namedtuple('Box', 'name capacity boxnumber count_bottles scaned')
+        boxs = state_data.get('boxs')
+        result = []
+        for name, capacity, boxnumber, count_bottles, scaned in boxs:
+            result.append(boxinfo(name, capacity, boxnumber, count_bottles, scaned))
+        return result
+
     kb = InlineKeyboardBuilder()
-    boxs = state_info.get('boxs')
+    boxs = await get_boxs(state_info.get('boxs'))
     id_f2r = state_info.get('id_f2r')
     id_wb = state_info.get('id_wb')
     ttn_egais = state_info.get('ttn_egais')
     admin = state_info.get('admin')
-    logger.debug(boxs)
-    logger.debug([box.scaned for box in boxs])
-    scaned = all([box.scaned for box in boxs])
+    scaned = all((box.scaned for box in boxs))
     if scaned:
         kb.button(text="Подтвердить накладную", callback_data=SendAcceptTTN(id_f2r=id_f2r, id_wb=id_wb, ttn=ttn_egais))
     elif admin and not scaned:
@@ -109,7 +117,6 @@ def getKeyboard_accept_ttn(state_info):
 
 def getKeyboard_accept_beer_ttn(state_info):
     kb = InlineKeyboardBuilder()
-    boxs = state_info.get('boxs')
     id_f2r = state_info.get('id_f2r')
     id_wb = state_info.get('id_wb')
     ttn_egais = state_info.get('ttn_egais')
