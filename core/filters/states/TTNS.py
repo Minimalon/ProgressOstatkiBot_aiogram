@@ -189,9 +189,8 @@ async def wait_busy(state: FSMContext):
     await state.update_data(busy=True)
 
 
-async def get_boxs(state_data):
+async def get_boxs(boxs):
     boxinfo = namedtuple('Box', 'name capacity boxnumber count_bottles scaned')
-    boxs = state_data.get('boxs')
     result = []
     for name, capacity, boxnumber, count_bottles, scaned in boxs:
         result.append(boxinfo(name, capacity, boxnumber, count_bottles, scaned))
