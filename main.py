@@ -27,6 +27,10 @@ async def start():
     storage = RedisStorage.from_url(config.redisStorage)
     dp = Dispatcher(storage=storage)
 
+    # Калбэки с прошлого бота для регистрации
+    dp.callback_query.register(basic.get_start, F.data == 'ostatki_last')
+    dp.callback_query.register(basic.get_start, F.data == 'ostatki_list')
+
     # COMMANDS
     dp.message.register(basic.get_start, Command(commands=['start']))
     dp.message.register(basic.my_id, Command(commands=['id']))

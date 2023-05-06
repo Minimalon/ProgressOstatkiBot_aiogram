@@ -17,9 +17,9 @@ async def get_true_contact(message: Message, bot: Bot):
     q = await botDB.get_client_info(chat_id=chat_id)
     if not q:
         await botDB.update_client_info(phone_number=phone, chat_id=chat_id, first_name=first_name, last_name=last_name, user_id=user_id)
-        logger.bind(chat_id=chat_id).success('Успешная регистрация')
         await bot.send_message(chat_id, texts.succes_registration, reply_markup=ReplyKeyboardRemove())
         await message.answer(texts.menu, reply_markup=getKeyboard_startMenu())
+        logger.bind(chat_id=chat_id).success('Успешная регистрация')
     else:
         await message.answer(texts.menu, reply_markup=getKeyboard_startMenu())
 

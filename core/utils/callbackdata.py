@@ -7,7 +7,7 @@ class Ostatki(CallbackData, prefix='ostatki'):
     fsrar: str
 
 
-class OstatkiLast(CallbackData, prefix='ostatki_last'):
+class OstatkiLast(CallbackData, prefix='ost_last'):
     inn: str
     fsrar: str
 
