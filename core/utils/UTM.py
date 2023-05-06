@@ -20,7 +20,6 @@ class UTM():
     def __init__(self, port, ip="localhost"):
         self.port = port
         self.ip = ip
-        self.check_utm_error()
 
     # Возвращает в dict (status, message)
     def parse_ticket_result(self, ticket):
@@ -237,7 +236,7 @@ class UTM():
 
     def check_utm_error(self):
         try:
-            status_UTM = requests.get('http://' + self.ip + ':' + self.port).ok
+            status_UTM = requests.get('http://' + self.ip + ':' + self.port, timeout=2).ok
         except Exception as ex:
             print("\033[31m{}\033[0m".format(ex))
             status_UTM = False

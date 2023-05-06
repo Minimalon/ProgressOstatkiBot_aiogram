@@ -78,15 +78,17 @@ async def choose_entity(message: Message, state: FSMContext, bot: Bot):
     log = logger.bind(name=message.chat.first_name, chat_id=message.chat.id)
     cash_info = await check_cash_number(message)
     if not cash_info:
-        await bot.send_message(message.chat.id, texts.menu, reply_markup=getKeyboard_startMenu(), parse_mode='HTML')
+        await bot.send_message(message.chat.id, texts.menu, reply_markup=getKeyboard_startMenu())
         await state.clear()
         return
     log.info(f'Написали компьютер "{message.text}"')
     await add_client_cashNumber(chat_id=message.chat.id, cash=cash_info.name)
-    UTM_8082 = UTM(ip=cash_info.ip, port='8082')
-    UTM_18082 = UTM(ip=cash_info.ip, port='18082')
+    UTM_8082 = UTM(ip=cash_info.ip, port='8082').check_utm_error()
+    UTM_18082 = UTM(ip=cash_info.ip, port='18082').check_utm_error()
     if not UTM_18082 and not UTM_8082:
-        await message.answer(texts.error_head + "Не найдено рабочих УТМов\nОбратитесь в тех.поддержку", reply_markup=getKeyboard_tehpod_url())
+        await message.answer(texts.error_head + "Не найдено рабочих УТМов\n"
+                                                "Возможно у вас нет интернета или выключен компьютер\n"
+                                                "Можете написать в тех.поддержку", reply_markup=getKeyboard_tehpod_url())
         log.error(f'Не найдено рабочих УТМов')
         return
     await message.answer(texts.choose_entity, reply_markup=getKeyboard_ttns_entity(cash_info, UTM_8082, UTM_18082))
@@ -138,7 +140,7 @@ async def choose_accept_ttns(call: CallbackQuery, state: FSMContext):
     await call.message.edit_text('Выберите накладную', reply_markup=getKeyboard_choose_ttn(ttns), parse_mode='HTML')
 
 
-async def start_accept_ttns(call: CallbackQuery, state: FSMContext, callback_data: AcceptTTN):
+async def start_accept_ttns(call: CallbackQuery, state: FSMContext, callback_data: AcceptTTN, bot: Bot):
     log = logger.bind(first_name=call.message.chat.first_name, chat_id=call.message.chat.id)
     log.info(f'Выбрали накладную "{callback_data.ttn}"')
     data = await state.get_data()
@@ -157,7 +159,12 @@ async def start_accept_ttns(call: CallbackQuery, state: FSMContext, callback_dat
         log.debug("Алкогольная накладная")
         boxs = await utm.get_box_info_from_Waybill(url_wb)
         await state.update_data(ttn_egais=ttn_egais, boxs=boxs, id_f2r=id_f2r, id_wb=id_wb)
-        await call.message.edit_text(texts.accept_text(boxs), reply_markup=getKeyboard_accept_ttn(await state.get_data()))
+        await call.message.delete()
+        text = '➖➖➖➖ℹ️<b><u>Инструкция</u></b>ℹ️➖➖➖➖\n' \
+               'Для приема ТТН отправьте фото штрих-кодов с коробок, либо ввидите штрих-код текстом. Можно отправлять по одному, либо сразу несколько фото.\n' \
+               'Пример фото:'
+        await bot.send_photo(call.message.chat.id, FSInputFile(os.path.join(config.dir_path, 'files', 'startAccept.jpg')), caption=text)
+        await bot.send_message(call.message.chat.id, texts.accept_text(boxs), reply_markup=getKeyboard_accept_ttn(await state.get_data()))
         logger.info(await state.get_data())
         await state.set_state(StateTTNs.accept_ttn)
 
