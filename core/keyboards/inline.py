@@ -5,6 +5,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from core.utils.callbackdata import *
 from loguru import logger
 
+
 def getKeyboard_startMenu():
     kb = InlineKeyboardBuilder()
     kb.button(text="Остатки", callback_data='ostatki')
@@ -89,7 +90,7 @@ def getKeyboard_choose_ttn(TTNs: list):
 
 
 def getKeyboard_accept_ttn(state_info):
-    async def get_boxs(state_data):
+    def get_boxs(state_data):
         boxinfo = namedtuple('Box', 'name capacity boxnumber count_bottles scaned')
         boxs = state_data.get('boxs')
         result = []
@@ -98,7 +99,7 @@ def getKeyboard_accept_ttn(state_info):
         return result
 
     kb = InlineKeyboardBuilder()
-    boxs = await get_boxs(state_info.get('boxs'))
+    boxs = get_boxs(state_info.get('boxs'))
     id_f2r = state_info.get('id_f2r')
     id_wb = state_info.get('id_wb')
     ttn_egais = state_info.get('ttn_egais')
@@ -153,5 +154,3 @@ def getKeyboard_info_ttn():
     kb.button(text=f'⬅️ Назад', callback_data='menu_ttns')
     kb.adjust(1, repeat=True)
     return kb.as_markup()
-
-
