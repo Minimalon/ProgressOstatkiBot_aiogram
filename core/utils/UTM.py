@@ -364,14 +364,14 @@ class UTM():
             Positions = WB.findall("*/*/*/{http://fsrar.ru/WEGAIS/TTNSingle_v4}Position")
             for pos in Positions:
                 boxs = pos.findall('*/*/{http://fsrar.ru/WEGAIS/CommonV3}boxpos')
-                EAN = pos.find('{http://fsrar.ru/WEGAIS/TTNSingle_v4}EAN13').text
+                EAN = pos.find('{http://fsrar.ru/WEGAIS/TTNSingle_v4}EAN13')
                 for box in boxs:
                     boxnumber = box.find('{http://fsrar.ru/WEGAIS/CommonV3}boxnumber').text
                     if boxnumber not in boxs_not_scanned:
                         amcs = box.findall('*/{http://fsrar.ru/WEGAIS/CommonV3}amc')
                         for a in amcs:
                             if EAN:
-                                file.write(f'{a} {EAN}\n')
+                                file.write(f'{a} {EAN.text}\n')
                             else:
                                 file.write(f'{a}')
 
