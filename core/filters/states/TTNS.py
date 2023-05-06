@@ -525,7 +525,7 @@ async def send_divirgence_ttn(call: CallbackQuery, state: FSMContext):
         async with httpx.AsyncClient() as client:
             await client.delete(url_f2r)
             await client.delete(url_wb)
-        log.success(f'Приняли накладную "{ttn_egais}"')
+        log.success(f'Акт расхождения успешно отправлен "{ttn_egais}"')
         await call.message.edit_text("✅Акт расхождения успешно отправлен\n")
         await state.clear()
     else:
