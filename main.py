@@ -28,8 +28,8 @@ async def start():
     dp = Dispatcher(storage=storage)
 
     # Калбэки с прошлого бота для регистрации
-    dp.callback_query.register(basic.get_start, F.data == 'ostatki_last')
-    dp.callback_query.register(basic.get_start, F.data == 'ostatki_list')
+    dp.callback_query.register(basic.get_start, F.data == 'cb_last_ostatki')
+    dp.callback_query.register(basic.get_start, F.data == 'cb_list_ostatki')
 
     # COMMANDS
     dp.message.register(basic.get_start, Command(commands=['start']))
