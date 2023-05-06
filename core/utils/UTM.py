@@ -360,8 +360,7 @@ class UTM():
         boxs_not_scanned = [box.boxnumber for box in boxs if not box.scaned]
         async with httpx.AsyncClient() as client:
             WB = ET.fromstring((await client.get(url_WB)).text)
-        with open(os.path.join(config.server_path, cash, 'amark.txt'), 'a+') as file:
-
+        with open(os.path.join(config.server_path, 'whitelist', cash, 'amark.txt'), 'a+') as file:
             Positions = WB.findall("*/*/*/{http://fsrar.ru/WEGAIS/TTNSingle_v4}Position")
             for pos in Positions:
                 boxs = pos.findall('*/*/{http://fsrar.ru/WEGAIS/CommonV3}boxpos')
