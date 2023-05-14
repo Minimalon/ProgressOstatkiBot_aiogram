@@ -1,5 +1,6 @@
 #!/usr/bin/env python3.10
 # -*- coding: utf-8 -*-
+
 import asyncio
 import aiogram.exceptions
 from aiogram import Bot, Dispatcher, F
@@ -19,8 +20,7 @@ from core.utils.commands import get_commands
 async def start():
     if not os.path.exists(os.path.join(config.dir_path, 'logs')):
         os.makedirs(os.path.join(config.dir_path, 'logs'))
-    logger.add(os.path.join(config.dir_path, 'logs', 'debug.log'),
-               format="{time} | {level} | {name}:{function}:{line} | {message} | {extra}", )
+    logger.add(os.path.join(config.dir_path, 'logs', 'debug.log'), format="{time} | {level} | {name}:{function}:{line} | {message} | {extra}", )
 
     bot = Bot(token=config.token, parse_mode='HTML')
     await get_commands(bot)
@@ -38,7 +38,6 @@ async def start():
     # CONTACT REGISTRATION
     dp.message.register(contact.get_true_contact, F.contact, IsTrueContact())
     dp.message.register(contact.get_fake_contact, F.contact)
-
     # OSTATKI
     dp.callback_query.register(ostatki.enter_cash_number, F.data == 'ostatki')
     # OSTATKI STATES

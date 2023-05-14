@@ -18,7 +18,8 @@ async def get_last_file(inn: str, fsrar: str):
     ostatki = [file for file in files if os.path.isfile(file)]
     last_file = max(ostatki, key=os.path.getctime)
     date = last_file.split(os.sep)[-1].split('.')[0]
-    date_file = dt.strptime(date, '%Y_%m_%d__%H_%M').strftime('%d-%m-%Y %H:%m')
+    date_file = dt.strptime(date, '%Y_%m_%d__%H_%M').strftime('%d-%m-%Y %H:%M')
+    print(date, date_file)
     return last_file, date_file
 
 
@@ -39,7 +40,7 @@ async def get_last_files(inn: str, fsrar: str):
     for file in ostatki[:6]:
         ostatki_file_path = file.split(os.sep)[-1]
         date = ostatki_file_path.split('.')[0]
-        date_file = dt.strptime(date, '%Y_%m_%d__%H_%M').strftime('%d-%m-%Y %H:%m')
+        date_file = dt.strptime(date, '%Y_%m_%d__%H_%M').strftime('%d-%m-%Y %H:%M')
         result.append([ostatki_file_path, date_file])
     return result
 

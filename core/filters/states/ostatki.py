@@ -8,6 +8,7 @@ from datetime import datetime as dt
 from sqlalchemy.exc import OperationalError
 
 import config
+from core.database.botDB import add_client_cashNumber
 from core.utils.states import StateOstatki
 from core.utils import texts
 from core.database import progressDB
@@ -46,7 +47,7 @@ async def check_cash_number(message: Message):
 
 async def send_ostatki(chat_id, file_path, bot: Bot):
     date = file_path.split(os.sep)[-1].split('.')[0]
-    date_file = dt.strptime(date, '%Y_%m_%d__%H_%M').strftime('%d-%m-%Y %H:%m')
+    date_file = dt.strptime(date, '%Y_%m_%d__%H_%M').strftime('%d-%m-%Y %H:%M')
     log = logger.bind(chat_id=chat_id, file_path=file_path, date=date_file)
     await bot.send_document(chat_id, document=FSInputFile(file_path))
     log.info("Отправил остатки")
@@ -58,16 +59,19 @@ async def enter_cash_number(call: CallbackQuery, state: FSMContext):
     logger.bind(name=call.message.chat.first_name, chat_id=call.message.chat.id). \
         info('Нажали кнопку "Остатки"')
     await call.message.answer(texts.enter_cash_number, parse_mode='HTML')
+    await call.answer()
     await state.set_state(StateOstatki.choose_entity)
 
 
 async def choose_entity(message: Message, state: FSMContext, bot: Bot):
+    log = logger.bind(name=message.chat.first_name, chat_id=message.chat.id)
     cash_info = await check_cash_number(message)
     if not cash_info:
         await bot.send_message(message.chat.id, texts.menu, reply_markup=getKeyboard_startMenu())
         await state.clear()
         return
-
+    log.info(f'Написали компьютер "{message.text}"')
+    await add_client_cashNumber(chat_id=message.chat.id, cash=cash_info.name)
     await message.answer(texts.choose_entity, reply_markup=getKeyboard_ostatki_entity(cash_info))
     await state.clear()
 
@@ -99,7 +103,6 @@ async def choose_list_ostatki(call: CallbackQuery, bot: Bot, callback_data: Osta
         await call.message.edit_text(texts.error_head + 'Список остатков пуст')
         await bot.send_message(call.message.chat.id, texts.menu, reply_markup=getKeyboard_startMenu())
         return
-
     await call.message.edit_text(texts.list_ostatki, reply_markup=getKeyboard_choose_list_ostatki(list_files, inn, fsrar))
 
 
