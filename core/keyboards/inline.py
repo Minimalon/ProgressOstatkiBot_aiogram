@@ -37,6 +37,12 @@ def getKeyboard_menu_ttns():
     kb.adjust(1, repeat=True)
     return kb.as_markup()
 
+def getKeyboard_menu_ttns_who_in_blacklist():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Список", callback_data='list_ttns')
+    kb.adjust(1, repeat=True)
+    return kb.as_markup()
+
 
 def getKeyboard_tehpod_url():
     kb = InlineKeyboardBuilder()
@@ -104,13 +110,16 @@ def getKeyboard_accept_ttn(state_info):
     ttn_egais = state_info.get('ttn_egais')
     admin = state_info.get('admin')
     scaned = all((box.scaned for box in boxs))
+    count_accept_box = len([box for box in boxs if box.scaned])
     if scaned:
         kb.button(text="Подтвердить накладную", callback_data=SendAcceptTTN(id_f2r=id_f2r, id_wb=id_wb, ttn=ttn_egais))
     elif admin and not scaned:
         kb.button(text="Подтвердить накладную", callback_data=SendAcceptTTN(id_f2r=id_f2r, id_wb=id_wb, ttn=ttn_egais))
-        kb.button(text="Отправить акт расхождения", callback_data='choose_divergence_ttn')
+        if count_accept_box > 0:
+            kb.button(text="Отправить акт расхождения", callback_data='choose_divergence_ttn')
     else:
-        kb.button(text="Отправить акт расхождения", callback_data='choose_divergence_ttn')
+        if count_accept_box > 0:
+            kb.button(text="Отправить акт расхождения", callback_data='choose_divergence_ttn')
     kb.adjust(1, repeat=True)
     return kb.as_markup()
 

@@ -112,17 +112,28 @@ async def menu_ttns(message: Message, state: FSMContext):
     inn = data.get('inn')
     log.info(f'Ввели ИНН "{inn}"')
     if inn == message.text:
-        await message.answer(texts.WayBills, reply_markup=getKeyboard_menu_ttns())
+        if data['inn'] in config.black_inn_list:
+            if data['cash'] in config.white_cash_list:
+                await message.answer(texts.WayBills, reply_markup=getKeyboard_menu_ttns())
+            else: await message.answer(texts.WayBills_blacklist, reply_markup=getKeyboard_menu_ttns_who_in_blacklist())
+        else:
+            await message.answer(texts.WayBills, reply_markup=getKeyboard_menu_ttns())
     else:
         log.error('Ввели неверный ИНН')
         await message.answer(texts.error_head + "Вы ввели неверный ИНН\nПопробуйте снова.", reply_markup=getKeyboard_tehpod_url())
 
 
-async def menu_back_ttns(call: CallbackQuery):
+async def menu_back_ttns(call: CallbackQuery, state: FSMContext):
     log = logger.bind(first_name=call.message.chat.first_name, chat_id=call.message.chat.id)
+    data = await state.get_data()
     log.info('Нажали кнопку "Назад"')
-    await call.message.edit_text(texts.WayBills, reply_markup=getKeyboard_menu_ttns(), parse_mode='HTML')
-
+    if data['inn'] in config.black_inn_list:
+        if data['cash'] in config.white_cash_list:
+            await call.message.answer(texts.WayBills, reply_markup=getKeyboard_menu_ttns())
+        else:
+            await call.message.answer(texts.WayBills_blacklist, reply_markup=getKeyboard_menu_ttns_who_in_blacklist())
+    else:
+        await call.message.answer(texts.WayBills, reply_markup=getKeyboard_menu_ttns())
 
 async def choose_accept_ttns(call: CallbackQuery, state: FSMContext):
     log = logger.bind(first_name=call.message.chat.first_name, chat_id=call.message.chat.id)
@@ -157,6 +168,11 @@ async def start_accept_ttns(call: CallbackQuery, state: FSMContext, callback_dat
         await call.message.edit_text(texts.beer_accept_text(beer_ttn), reply_markup=getKeyboard_accept_beer_ttn(await state.get_data()))
     else:
         log.debug("Алкогольная накладная")
+        SAMAN = ['1657253779','1660340005','1660343863','1660344472','1644096180','1660346991','1660347201','1660349488','1660349657']
+        if data.get('inn') in SAMAN:
+            if data.get('cash') not in ['cash-1-1']: # Белый список, кому можно по коробкам
+                await call.message.edit_text('К сож')
+
         boxs = await utm.get_box_info_from_Waybill(url_wb)
         await state.update_data(ttn_egais=ttn_egais, boxs=boxs, id_f2r=id_f2r, id_wb=id_wb)
         await call.message.delete()
