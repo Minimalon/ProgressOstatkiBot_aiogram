@@ -11,5 +11,6 @@ class StateOstatki(StatesGroup):
 class StateTTNs(StatesGroup):
     choose_entity = State()
     menu_ttns = State()
+    enter_inn = State()
     accept_ttn = State()
     choose_divirgence_ttn = State()

@@ -93,6 +93,7 @@ async def choose_entity(message: Message, state: FSMContext, bot: Bot):
         return
     await message.answer(texts.choose_entity, reply_markup=getKeyboard_ttns_entity(cash_info, UTM_8082, UTM_18082))
     await state.update_data(cash=cash_info.name)
+    await state.set_state(StateTTNs.enter_inn)
 
 
 async def enter_inn(call: CallbackQuery, state: FSMContext, callback_data: TTNSChooseEntity):

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import asyncio
 import os
 
 import requests
@@ -44,7 +45,7 @@ class UTM():
             if len(url) > 1:
                 return url
             max_time -= timeout
-            time.sleep(timeout)
+            await asyncio.sleep(timeout)
 
     async def get_all_opt_URLS_text(self):
         async with httpx.AsyncClient() as client:
