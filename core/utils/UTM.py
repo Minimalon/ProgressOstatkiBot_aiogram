@@ -34,15 +34,16 @@ class UTM():
             message = tree.find('*/*/*/{http://fsrar.ru/WEGAIS/Ticket}Comments').text.strip()
         return Response(status, message)
 
-    def wait_answer(self, url, timeout=15):
+    def wait_answer(self, replyId, timeout=15):
         max_time = 1500
         while max_time > 0:
-            print("-- Ожидание ответа от: {}".format(url))
-            opt_urls = BeautifulSoup(requests.get("http://" + self.ip + ":" + self.port + "/opt/out").text, 'xml').findAll("url")
-            for opt_url in opt_urls:
-                if opt_url.get('replyId') == url:
-                    return opt_url.text
-            max_time = 1500 - timeout
+            print("-- Ожидание ответа от: {}".format(replyId))
+            async with httpx.AsyncClient() as client:
+                answer = await client.get(f"http://{self.ip}:{self.port}/opt/out?replyId={replyId}")
+                url = BeautifulSoup(answer.text, 'xml').findAll("url")
+            if len(url) > 1:
+                return url
+            max_time -= timeout
             time.sleep(timeout)
 
     async def get_all_opt_URLS_text(self):
@@ -83,6 +84,19 @@ class UTM():
                 if NUMBER == WBNUMBER:
                     ttns.append(TTNS(url_form.split('/')[-1], url_wb.split('/')[-1], TTN, SHIPPER_NAME, date, NUMBER))
         return ttns
+
+    def send_QueryRestBCode(self, FB: str):
+        files = {'xml_file': CURL.QueryRestBCode(self.get_fsrar(), FB)
+                 }
+        response = requests.post('http://' + self.ip + ':' + self.port + '/opt/in/QueryRestBCode', files=files)
+        if response.status_code == 200:
+            request_id = BeautifulSoup(response.text, "xml").find("url").text
+            logger.info(f"QueryFormB отправлен  request_id: {request_id}")
+            return request_id
+        else:
+            logger.error("QueryFormB не отправлен")
+            logger.error(f"HTTP code {str(response.status_code)} != 200")
+            return False
 
     def send_QueryRests_v2(self):
         files = {
@@ -450,11 +464,8 @@ class UTM():
 
 
 def main():
-    utm = UTM(port="8082", ip="10.8.3.190")
-    ttns = utm.get_Waybill_and_FORM2REGINFO()
-    for ttn in ttns:
-        url_wb = f"http://10.8.3.190:8082/opt/out/WayBill_v4/{ttn.id_wb}"
-        print(utm.get_box_info_from_Waybill(url_wb))
+    utm = UTM(port="8082", ip="10.8.22.158")
+    ttns = utm.send_QueryRestBCode('FB-000005708503477')
     # tickets = [ticket for ticket in utm.get_all_opt_URLS_text() if re.findall('Ticket', ticket)]
     # for ticket in tickets:
     #     print(utm.parse_ticket_result(ticket))

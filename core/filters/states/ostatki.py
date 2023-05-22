@@ -41,8 +41,7 @@ async def check_cash_number(message: Message):
             return False
         return cash_info
     except OperationalError as ex:
-        log.error(ex)
-        await message.answer("Произошел небольшой сбой\nПопробуйте ввести еще раз тоже самое.")
+        return await check_cash_number(message)
 
 
 async def send_ostatki(chat_id, file_path, bot: Bot):
