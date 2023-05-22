@@ -52,7 +52,7 @@ async def start():
     dp.callback_query.register(TTNS.enter_cash_number, F.data == 'WayBills')
     # TTNS STATES
     dp.message.register(TTNS.choose_entity, StateTTNs.choose_entity)
-    dp.callback_query.register(TTNS.enter_inn, TTNSChooseEntity.filter())
+    dp.callback_query.register(TTNS.enter_inn, TTNSChooseEntity.filter(), StateTTNs.enter_inn)
     dp.message.register(TTNS.menu_ttns, StateTTNs.menu_ttns)
     # TTNS MENU
     dp.callback_query.register(TTNS.choose_accept_ttns, F.data == 'accept_ttns')
