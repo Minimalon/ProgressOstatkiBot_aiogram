@@ -34,7 +34,7 @@ class UTM():
             message = tree.find('*/*/*/{http://fsrar.ru/WEGAIS/Ticket}Comments').text.strip()
         return Response(status, message)
 
-    def wait_answer(self, replyId, timeout=15):
+    async def wait_answer(self, replyId, timeout=15):
         max_time = 1500
         while max_time > 0:
             print("-- Ожидание ответа от: {}".format(replyId))
