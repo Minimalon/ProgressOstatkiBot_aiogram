@@ -24,6 +24,7 @@ async def select_dcode(call: CallbackQuery, state: FSMContext):
     log.info('Нажали "Создать штрихкод"')
     await call.message.edit_text("Выберите нужный тип товара", reply_markup=getKeyboard_select_dcode())
     await state.set_state(CreateBarcode.dcode)
+    await state.update_data(barcode=None)
 
 
 async def select_measure(call: CallbackQuery, state: FSMContext, callback_data: SelectDcode):
