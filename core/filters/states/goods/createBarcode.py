@@ -176,7 +176,7 @@ async def accept_name(message: Message, state: FSMContext, bot: Bot):
     path = generate_pdf(cash_number)
     await bot.send_document(message.chat.id, document=FSInputFile(path))
     try:
-        add_barcodes_in_cash(ip, cash_number)
+        await add_barcodes_in_cash(ip, cash_number)
         log.success(f'Успешно {len(name)} штриход(-а)')
         if len(names) == 1:
             await message.answer('Успешно создан 1 штрихкод, через 5 минут он будет загружен на кассу')
