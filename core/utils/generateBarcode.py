@@ -2,7 +2,7 @@ import math
 import os.path
 
 from PIL import Image, ImageDraw, ImageFont
-from barcode import Code128
+from barcode.codex import Code128
 from barcode.writer import ImageWriter
 from reportlab.lib import utils
 from reportlab.lib.pagesizes import letter
