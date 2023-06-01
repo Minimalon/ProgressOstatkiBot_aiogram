@@ -22,7 +22,7 @@ class OstatkiChooseList(CallbackData, prefix='ost_list'):
 
 # ====TTNS====
 
-class TTNSChooseEntity(CallbackData, prefix='ttns'):
+class ChooseEntity(CallbackData, prefix='entity'):
     inn: str
     fsrar: str
     port: str
@@ -38,6 +38,16 @@ class SendAcceptTTN(CallbackData, prefix='send_ttn'):
     id_wb: str
     ttn: str
 
+
 class ListTTN(CallbackData, prefix='ttn_list'):
     ttnload: str
     ttn_e: str
+
+class SelectDcode(CallbackData, prefix='dcode'):
+    dcode: int
+    op_mode: int
+    tmctype: int
+class SelectMeasure(CallbackData, prefix='measure'):
+    measure: int
+    op_mode: int
+    tmctype: int

@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
 import asyncio
-import os
-
-import requests
-import httpx
-import re
 import json
-from bs4 import BeautifulSoup
-from datetime import datetime
+import os
+import re
 import xml.etree.ElementTree as ET
+from collections import namedtuple
+from datetime import datetime
+
+import httpx
+import requests
+from bs4 import BeautifulSoup
+from loguru import logger
 
 import config
 from core.utils import CURL
-import time
-from collections import namedtuple
-from loguru import logger
 
 
 class UTM():
@@ -322,9 +321,9 @@ class UTM():
 
     async def get_box_info_from_Waybill(self, url_WB):
         """
-        Возвращает Box(name, capacity, boxnumber, count_bottles,scaned)
+        Возвращает Box(name, capacity, boxnumber, count_bottles, amarks, scaned)
         """
-        boxinfo = namedtuple('Box', 'name capacity boxnumber count_bottles scaned')
+        boxinfo = namedtuple('Box', 'name capacity boxnumber count_bottles amarks scaned')
         async with httpx.AsyncClient() as client:
             WB = ET.fromstring((await client.get(url_WB)).text)
         Positions = WB.findall("*/*/*/{http://fsrar.ru/WEGAIS/TTNSingle_v4}Position")
@@ -341,11 +340,13 @@ class UTM():
             boxs = pos.findall('*/*/{http://fsrar.ru/WEGAIS/CommonV3}boxpos')
             for box in boxs:
                 boxnumber = box.find('{http://fsrar.ru/WEGAIS/CommonV3}boxnumber').text
-                count_bottles_in_box = len(box.findall('*/{http://fsrar.ru/WEGAIS/CommonV3}amc'))
-                if ShortName:
-                    result.append(boxinfo(ShortName, Capacity, boxnumber, count_bottles_in_box, False))
-                else:
-                    result.append(boxinfo(FullName, Capacity, boxnumber, count_bottles_in_box, False))
+                if boxnumber not in [b.boxnumber for b in result]:
+                    amarks = [box.text for box in box.findall('*/{http://fsrar.ru/WEGAIS/CommonV3}amc')]
+                    count_bottles_in_box = len(amarks)
+                    if ShortName:
+                        result.append(boxinfo(ShortName, Capacity, boxnumber, count_bottles_in_box, amarks, False))
+                    else:
+                        result.append(boxinfo(FullName, Capacity, boxnumber, count_bottles_in_box, amarks, False))
         return result
 
     def get_accepted_ttn(self):

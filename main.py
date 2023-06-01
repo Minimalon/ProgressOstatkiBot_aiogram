@@ -9,11 +9,13 @@ from aiogram.fsm.storage.redis import RedisStorage
 
 from core.handlers import basic, contact
 from core.filters.states import ostatki, TTNS
+from core.filters.states.goods import createBarcode, changePrice
 from core.filters.iscontact import IsTrueContact
 from core.utils.callbackdata import *
 from core.filters.states.ostatki import *
 from core.utils.states import *
 from core.utils.commands import get_commands
+from core.filters.states.logins import loginGoods, loginTTN, loginOstatki
 
 
 @logger.catch()
@@ -39,21 +41,22 @@ async def start():
     dp.message.register(contact.get_true_contact, F.contact, IsTrueContact())
     dp.message.register(contact.get_fake_contact, F.contact)
     # OSTATKI
-    dp.callback_query.register(ostatki.enter_cash_number, F.data == 'ostatki')
+    dp.callback_query.register(loginOstatki.enter_cash_number, F.data == 'ostatki')
     # OSTATKI STATES
-    dp.message.register(ostatki.choose_entity, StateOstatki.choose_entity)
+    dp.message.register(loginOstatki.choose_entity, StateOstatki.enter_cashNumber)
+    dp.callback_query.register(loginOstatki.enter_inn, Ostatki.filter(), StateOstatki.choose_entity)
+    dp.message.register(loginOstatki.menu, StateOstatki.inn)
     # OSTATKI MENU
-    dp.callback_query.register(ostatki.choose_ostatki_menu, Ostatki.filter())
     dp.callback_query.register(ostatki.push_last_ostatki, OstatkiLast.filter())
     dp.callback_query.register(ostatki.choose_list_ostatki, OstatkiList.filter())
     dp.callback_query.register(ostatki.push_list_ostatki, OstatkiChooseList.filter())
 
     # TTNS
-    dp.callback_query.register(TTNS.enter_cash_number, F.data == 'WayBills')
+    dp.callback_query.register(loginTTN.enter_cash_number, F.data == 'WayBills')
     # TTNS STATES
-    dp.message.register(TTNS.choose_entity, StateTTNs.choose_entity)
-    dp.callback_query.register(TTNS.enter_inn, TTNSChooseEntity.filter(), StateTTNs.enter_inn)
-    dp.message.register(TTNS.menu_ttns, StateTTNs.menu_ttns)
+    dp.message.register(loginTTN.choose_entity, StateTTNs.enter_cashNumber)
+    dp.callback_query.register(loginTTN.enter_inn, ChooseEntity.filter(), StateTTNs.choose_entity)
+    dp.message.register(loginTTN.menu_ttns, StateTTNs.inn)
     # TTNS MENU
     dp.callback_query.register(TTNS.choose_accept_ttns, F.data == 'accept_ttns')
     # TTNS ACCEPT
@@ -71,6 +74,29 @@ async def start():
     dp.callback_query.register(TTNS.choose_list_ttns, F.data == 'list_ttns')
     dp.callback_query.register(TTNS.info_ttn, ListTTN.filter())
     dp.callback_query.register(TTNS.menu_back_ttns, F.data == 'menu_ttns')  # Кнопка "Назад"
+
+# goods
+    dp.callback_query.register(loginGoods.enter_cash_number, F.data == 'goods')
+    dp.message.register(loginGoods.choose_entity, Goods.enter_cashNumber)
+    dp.callback_query.register(loginGoods.enter_inn, ChooseEntity.filter(), Goods.choose_entity)
+    dp.message.register(loginGoods.menu_goods, Goods.inn)
+
+    # Создание штрихкода
+    dp.callback_query.register(createBarcode.select_dcode, F.data == 'new_barcode')
+    dp.callback_query.register(createBarcode.select_measure, SelectDcode.filter())
+    dp.callback_query.register(createBarcode.accept_measure, SelectMeasure.filter())
+    dp.message.register(createBarcode.photo_barcode, CreateBarcode.barcode, F.photo)
+    dp.message.register(createBarcode.document_barcode, CreateBarcode.barcode, F.document)
+    dp.message.register(createBarcode.text_barcode, CreateBarcode.barcode)
+    dp.message.register(createBarcode.price, CreateBarcode.price)
+    dp.message.register(createBarcode.accept_name, CreateBarcode.name)
+
+    # Изменение цены
+    dp.callback_query.register(changePrice.send_barcode, F.data == 'new_price_barcode')
+    dp.message.register(changePrice.photo_barcode, ChangePrice.barcode, F.photo)
+    dp.message.register(changePrice.document_barcode, ChangePrice.barcode, F.document)
+    dp.message.register(changePrice.text_barcode, ChangePrice.barcode)
+    dp.message.register(changePrice.final, ChangePrice.price)
 
     try:
         await dp.start_polling(bot)

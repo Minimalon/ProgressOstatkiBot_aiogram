@@ -10,7 +10,8 @@ def getKeyboard_startMenu():
     kb = InlineKeyboardBuilder()
     kb.button(text="Остатки", callback_data='ostatki')
     kb.button(text="Накладные", callback_data='WayBills')
-    kb.adjust(2)
+    kb.button(text="Товары", callback_data='goods')
+    kb.adjust(2, repeat=True)
     return kb.as_markup()
 
 
@@ -18,6 +19,44 @@ def getKeyboard_ostatki(inn, fsrar):
     kb = InlineKeyboardBuilder()
     kb.button(text="Последние остатки", callback_data=OstatkiLast(inn=inn, fsrar=fsrar))
     kb.button(text="Список по датам", callback_data=OstatkiList(inn=inn, fsrar=fsrar))
+    kb.adjust(1, repeat=True)
+    return kb.as_markup()
+
+def getKeyboard_goods():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Создать штрихкод", callback_data='new_barcode')
+    kb.button(text="Изменить цену", callback_data='new_price_barcode')
+    kb.adjust(1, repeat=True)
+    return kb.as_markup()
+
+def getKeyboard_select_dcode():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Алкоголь", callback_data=SelectDcode(dcode='1', op_mode='192', tmctype='1'))
+    kb.button(text="Пиво", callback_data=SelectDcode(dcode='2', op_mode='64', tmctype='0'))
+    kb.button(text="Сигареты", callback_data=SelectDcode(dcode='3', op_mode='32768', tmctype='3'))
+    kb.button(text="Продукты", callback_data=SelectDcode(dcode='4', op_mode='0', tmctype='0'))
+    kb.button(text="Маркированный товар", callback_data=SelectDcode(dcode='5', op_mode='0', tmctype='7'))
+    kb.adjust(1, repeat=True)
+    return kb.as_markup()
+
+def getKeyboard_select_measure_alcohol():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Поштучный", callback_data=SelectMeasure(measure='1', op_mode='192', tmctype='1'))
+    kb.button(text="Розлив", callback_data=SelectMeasure(measure='1', op_mode='0', tmctype='0'))
+    kb.adjust(1, repeat=True)
+    return kb.as_markup()
+
+def getKeyboard_select_measure_beer():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Поштучный", callback_data=SelectMeasure(measure='1', op_mode='64', tmctype='0'))
+    kb.button(text="Розлив", callback_data=SelectMeasure(measure='2', op_mode='64', tmctype='0'))
+    kb.adjust(1, repeat=True)
+    return kb.as_markup()
+
+def getKeyboard_select_measure_products():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Поштучный", callback_data=SelectMeasure(measure='1', op_mode='0', tmctype='0'))
+    kb.button(text="Весовой", callback_data=SelectMeasure(measure='2', op_mode='0', tmctype='0'))
     kb.adjust(1, repeat=True)
     return kb.as_markup()
 
@@ -69,7 +108,7 @@ def getKeyboard_ostatki_entity(cash_info):
     return kb.as_markup()
 
 
-def getKeyboard_ttns_entity(cash_info, UTM_8082, UTM_18082):
+def getKeyboard_entity(cash_info, UTM_8082, UTM_18082):
     kb = InlineKeyboardBuilder()
     try:
         ooo_inn, ooo_name, ooo_fsrar = (cash_info.inn, cash_info.ooo_name, cash_info.fsrar)
@@ -80,9 +119,9 @@ def getKeyboard_ttns_entity(cash_info, UTM_8082, UTM_18082):
     except AttributeError:
         ip_inn, ip_name, ip_fsrar = False, False, False
     if ooo_inn and ooo_fsrar and UTM_8082:
-        kb.button(text=ooo_name, callback_data=TTNSChooseEntity(inn=ooo_inn, fsrar=ooo_fsrar, port='8082', ip=cash_info.ip))
+        kb.button(text=ooo_name, callback_data=ChooseEntity(inn=ooo_inn, fsrar=ooo_fsrar, port='8082', ip=cash_info.ip))
     if ip_inn and ip_fsrar and UTM_18082:
-        kb.button(text=ip_name, callback_data=TTNSChooseEntity(inn=ip_inn, fsrar=ip_fsrar, port='18082', ip=cash_info.ip))
+        kb.button(text=ip_name, callback_data=ChooseEntity(inn=ip_inn, fsrar=ip_fsrar, port='18082', ip=cash_info.ip))
     kb.adjust(1, repeat=True)
     return kb.as_markup()
 
@@ -97,10 +136,10 @@ def getKeyboard_choose_ttn(TTNs: list):
 
 def getKeyboard_accept_ttn(state_info):
     def get_boxs(boxs):
-        boxinfo = namedtuple('Box', 'name capacity boxnumber count_bottles scaned')
+        boxinfo = namedtuple('Box', 'name capacity boxnumber count_bottles amarks scaned')
         result = []
-        for name, capacity, boxnumber, count_bottles, scaned in boxs:
-            result.append(boxinfo(name, capacity, boxnumber, count_bottles, scaned))
+        for name, capacity, boxnumber, count_bottles, amarks, scaned in boxs:
+            result.append(boxinfo(name, capacity, boxnumber, count_bottles, amarks, scaned))
         return result
 
     kb = InlineKeyboardBuilder()

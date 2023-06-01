@@ -1,14 +1,37 @@
-import asyncio
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import *
-from core.database.model import Clients
-import config
 from loguru import logger
+from sqlalchemy import select, update
+from sqlalchemy.orm import *
+
+from core.database.modelBOT import *
 
 engine = create_engine(
-    f"mysql+pymysql://{config.db_user}:{config.db_password}@{config.ip}:{config.port}/{config.bot_database}?charset=utf8mb4", pool_pre_ping=True)
+    f"mysql+pymysql://{config.db_user}:{config.db_password}@{config.ip}:{config.port}/{config.bot_database}?charset=utf8mb4")
 Session = sessionmaker(bind=engine)
+
+
+async def get_barcodes_for_add(cash_number: str):
+    with Session() as session:
+        barcodes = session.execute(
+            select(Barcodes).where((Barcodes.cash_number == cash_number) & (Barcodes.status == 'add') & (Barcodes.succes == False))).scalars().all()
+        return barcodes
+
+
+async def get_barcodes_for_price(cash_number: str):
+    with Session() as session:
+        barcodes = session.execute(
+            select(Barcodes).where((Barcodes.cash_number == cash_number) & (Barcodes.status == 'setprice') & (Barcodes.succes == False))).scalars().all()
+        return barcodes
+
+
+async def update_status_barcode(id: str, state: bool):
+    with Session() as session:
+        session.execute(update(Barcodes).where(Barcodes.id == id).values(succes=state))
+        session.commit()
+
+
+def get_unique_cashnumbers_from_barcodes():
+    with Session() as session:
+        return session.execute(select(Barcodes.cash_number.distinct()).where(Barcodes.succes == False)).scalars().all()
 
 
 async def update_client_info(**kwargs):
@@ -47,4 +70,22 @@ async def add_client_cashNumber(**kwargs):
                     'chat_id': chat_id,
                     'cash': cashes
                 }, synchronize_session='fetch')
+        session.commit()
+
+
+async def check_cashNumber(chat_id: str, cash: str):
+    with Session() as session:
+        client = session.query(Clients).filter(Clients.chat_id == chat_id).first()
+        if client.cash is None:
+            return False
+        else:
+            cashes = client.cash.split(',')
+            if not cash in cashes:
+                return False
+        return True
+
+
+def create_barcode(**kwargs):
+    with Session() as session:
+        session.add(Barcodes(**kwargs))
         session.commit()

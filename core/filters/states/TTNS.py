@@ -1,4 +1,5 @@
 import asyncio
+
 import os
 import re
 from collections import namedtuple
@@ -8,7 +9,6 @@ from aiogram import Bot
 from aiogram.types import CallbackQuery, Message, FSInputFile
 from aiogram.fsm.context import FSMContext
 from loguru import logger
-from sqlalchemy.exc import OperationalError
 from pyzbar import pyzbar
 import cv2
 from aiogram_media_group import media_group_handler
@@ -23,7 +23,7 @@ from core.keyboards.inline import *
 from core.utils import texts
 from core.utils.states import StateTTNs
 from core.utils.UTM import UTM
-from core.utils.callbackdata import TTNSChooseEntity, AcceptTTN, SendAcceptTTN
+from core.utils.callbackdata import ChooseEntity, AcceptTTN, SendAcceptTTN
 
 
 async def read_barcodes_from_image(image_path):
@@ -34,94 +34,6 @@ async def read_barcodes_from_image(image_path):
         barcode_data = barcode.data.decode('utf-8')
         barcode_data_list.append(barcode_data)
     return barcode_data_list
-
-
-async def check_cash_number(message: Message):
-    log = logger.bind(text=message.text)
-    try:
-        cash_info = progressDB.get_cash_info(message.text)
-        count_cashes = progressDB.check_cash_info(message.text)
-        if not message.text.isdigit():
-            log.error('Состоит не только из цифр')
-            await message.answer(texts.error_cashNumber)
-            return False
-        elif not re.findall('^[0-9]{1,4}$', message.text):
-            log.error('Не проходит по регулярному выражению "^[0-9]{1,4}$"')
-            await message.answer(texts.error_cashNumber)
-            return False
-        elif not cash_info:
-            log.error("Не найдено кассы в базе данных")
-            await message.answer(texts.error_cash_not_found)
-            return False
-        elif count_cashes > 1:
-            log.error('Найдено больше одной кассы')
-            await message.answer(texts.error_duplicateCash)
-            return False
-        return cash_info
-    except OperationalError as ex:
-        log.error(ex)
-        await message.answer(texts.error_head + "Произошел небольшой сбой\nПопробуйте ввести еще раз тоже самое.")
-    except Exception:
-        await message.answer(texts.error_head + "Произошел сбой\nПопробуйте заново.")
-        return False
-
-
-async def enter_cash_number(call: CallbackQuery, state: FSMContext):
-    logger.bind(name=call.message.chat.first_name, chat_id=call.message.chat.id). \
-        info('Нажали кнопку "Накладные"')
-    await call.message.answer(texts.enter_cash_number, parse_mode='HTML')
-    await call.answer()
-    await state.set_state(StateTTNs.choose_entity)
-
-
-async def choose_entity(message: Message, state: FSMContext, bot: Bot):
-    log = logger.bind(name=message.chat.first_name, chat_id=message.chat.id)
-    cash_info = await check_cash_number(message)
-    if not cash_info:
-        await bot.send_message(message.chat.id, texts.menu, reply_markup=getKeyboard_startMenu())
-        await state.clear()
-        return
-    log.info(f'Написали компьютер "{message.text}"')
-    await add_client_cashNumber(chat_id=message.chat.id, cash=cash_info.name)
-    UTM_8082 = UTM(ip=cash_info.ip, port='8082').check_utm_error()
-    UTM_18082 = UTM(ip=cash_info.ip, port='18082').check_utm_error()
-    if not UTM_18082 and not UTM_8082:
-        await message.answer(texts.error_head + "Не найдено рабочих УТМов\n"
-                                                "Возможно у вас нет интернета или выключен компьютер\n"
-                                                "Можете написать в тех.поддержку", reply_markup=getKeyboard_tehpod_url())
-        log.error(f'Не найдено рабочих УТМов')
-        return
-    await message.answer(texts.choose_entity, reply_markup=getKeyboard_ttns_entity(cash_info, UTM_8082, UTM_18082))
-    await state.update_data(cash=cash_info.name)
-    await state.set_state(StateTTNs.enter_inn)
-
-
-async def enter_inn(call: CallbackQuery, state: FSMContext, callback_data: TTNSChooseEntity):
-    inn, fsrar, ip, port = (callback_data.inn, callback_data.fsrar, callback_data.ip, callback_data.port)
-    log = logger.bind(first_name=call.message.chat.first_name, chat_id=call.message.chat.id, inn=inn, fsrar=fsrar, ip=ip, port=port)
-    client = await get_client_info(chat_id=call.message.chat.id)
-    log.info(f'Выбрали Юр.Лицо "{inn}"')
-    kpp = UTM(ip=ip, port=port).get_cash_info()['KPP']
-    await state.update_data(inn=inn, fsrar=fsrar, ip=ip, port=port, kpp=kpp, admin=client.admin)
-    await call.message.edit_text('Напишите ИНН юр.лица которого выбрали:\nНужны только цифры. Например: <b><u>1660340123</u></b>')
-    await state.set_state(StateTTNs.menu_ttns)
-
-
-async def menu_ttns(message: Message, state: FSMContext):
-    log = logger.bind(first_name=message.chat.first_name, chat_id=message.chat.id)
-    data = await state.get_data()
-    inn = data.get('inn')
-    log.info(f'Ввели ИНН "{inn}"')
-    if inn == message.text:
-        if data['inn'] in config.black_inn_list:
-            if data['cash'] in config.white_cash_list:
-                await message.answer(texts.WayBills, reply_markup=getKeyboard_menu_ttns())
-            else: await message.answer(texts.WayBills_blacklist, reply_markup=getKeyboard_menu_ttns_who_in_blacklist())
-        else:
-            await message.answer(texts.WayBills, reply_markup=getKeyboard_menu_ttns())
-    else:
-        log.error('Ввели неверный ИНН')
-        await message.answer(texts.error_head + "Вы ввели неверный ИНН\nПопробуйте снова.", reply_markup=getKeyboard_tehpod_url())
 
 
 async def menu_back_ttns(call: CallbackQuery, state: FSMContext):
@@ -135,6 +47,7 @@ async def menu_back_ttns(call: CallbackQuery, state: FSMContext):
             await call.message.answer(texts.WayBills_blacklist, reply_markup=getKeyboard_menu_ttns_who_in_blacklist())
     else:
         await call.message.answer(texts.WayBills, reply_markup=getKeyboard_menu_ttns())
+
 
 async def choose_accept_ttns(call: CallbackQuery, state: FSMContext):
     log = logger.bind(first_name=call.message.chat.first_name, chat_id=call.message.chat.id)
@@ -169,11 +82,8 @@ async def start_accept_ttns(call: CallbackQuery, state: FSMContext, callback_dat
         await call.message.edit_text(texts.beer_accept_text(beer_ttn), reply_markup=getKeyboard_accept_beer_ttn(await state.get_data()))
     else:
         log.debug("Алкогольная накладная")
-        SAMAN = ['1657253779','1660340005','1660343863','1660344472','1644096180','1660346991','1660347201','1660349488','1660349657']
-        if data.get('inn') in SAMAN:
-            if data.get('cash') not in ['cash-1-1']: # Белый список, кому можно по коробкам
-                await call.message.edit_text('К сож')
-
+        if not os.path.exists(os.path.join(config.dir_path, 'files', 'boxnumbers')):
+            os.makedirs(os.path.join(config.dir_path, 'files', 'boxnumbers'))
         boxs = await utm.get_box_info_from_Waybill(url_wb)
         await state.update_data(ttn_egais=ttn_egais, boxs=boxs, id_f2r=id_f2r, id_wb=id_wb)
         await call.message.delete()
@@ -207,10 +117,14 @@ async def wait_busy(state: FSMContext):
 
 
 async def get_boxs(boxs):
-    boxinfo = namedtuple('Box', 'name capacity boxnumber count_bottles scaned')
+    """
+    :param boxs: Коробки
+    :return: [namedtuple('Box', 'name capacity boxnumber count_bottles amarks scaned'), ...]
+    """
+    boxinfo = namedtuple('Box', 'name capacity boxnumber count_bottles amarks scaned')
     result = []
-    for name, capacity, boxnumber, count_bottles, scaned in boxs:
-        result.append(boxinfo(name, capacity, boxnumber, count_bottles, scaned))
+    for name, capacity, boxnumber, count_bottles, amarks, scaned in boxs:
+        result.append(boxinfo(name, capacity, boxnumber, count_bottles, amarks, scaned))
     return result
 
 
@@ -219,39 +133,55 @@ async def message_accept_ttns(message: Message, state: FSMContext, bot: Bot):
     log = logger.bind(first_name=message.chat.first_name, chat_id=message.chat.id)
     data = await state.get_data()
     messages = message.text.split()
-    log.info(f'Написали штрихкода "{messages}"')
+    log.info(f'Написали штрихкод(-а) "{messages}"')
     boxs = await get_boxs(data.get('boxs'))
     result = [box for box in boxs if box.scaned]
-    new_boxs = namedtuple('Box', 'name capacity boxnumber count_bottles scaned')
+    new_boxs = namedtuple('Box', 'name capacity boxnumber count_bottles amarks scaned')
 
     barcodes = []
     for bcode in messages:
-        if bcode not in (b.boxnumber for b in boxs):
-            text = texts.error_head + f'Данной коробки <code>"{bcode}"</code> не найдено в накладной'
-            await bot.send_message(message.chat.id, text)
-            log.debug(f'Данной коробки "{bcode}" не найдено в накладной')
-        elif bcode in (b.boxnumber for b in result):
-            text = texts.error_head + f'Вы уже отправляли данную коробку\n"<code>{str(bcode).strip()}</code>"'
-            await bot.send_message(message.chat.id, text)
-            log.debug(f'Вы уже отправляли данную коробку "{bcode}"')
+        match = 0
+        if re.findall('^[0-9]{9}$|[A-Z0-9]{150}|[A-Z0-9]{68}', bcode):
+            for pos in result:
+                for mark in pos.amarks:
+                    if re.findall(bcode, mark):
+                        match +=1
+                        log.debug(f'Данная акцизка "{bcode}" уже принята')
+                        await bot.send_message(message.chat.id, texts.error_head + f'Данная акцизная марка "<code>{bcode}</code>" уже принята. Отправьте другую акцизную марку')
+                        break
+            if match == 0:
+                barcodes.append(bcode)
         else:
-            barcodes.append(bcode)
+            if bcode not in (b.boxnumber for b in boxs) and match:
+                text = texts.error_head + f'Данной коробки <code>"{bcode}"</code> не найдено в накладной'
+                await bot.send_message(message.chat.id, text)
+                log.debug(f'Данной коробки "{bcode}" не найдено в накладной')
+            elif bcode in (b.boxnumber for b in result)  and not match:
+                text = texts.error_head + f'Вы уже отправляли данную коробку\n"<code>{str(bcode).strip()}</code>"'
+                await bot.send_message(message.chat.id, text)
+                log.debug(f'Вы уже отправляли данную коробку "{bcode}"')
+            else:
+                barcodes.append(bcode)
 
     if len(barcodes) == 0:
         await state.update_data(busy=False)
         return
-
+    log.info(len(boxs))
     for box in boxs:
         match = 0
         for barcode in barcodes:
-            if barcode == box.boxnumber:
+            if re.findall('^[0-9]{9}$|[A-Z0-9]{150}|[A-Z0-9]{68}', barcode):
+                for amark in box.amarks:
+                    if re.findall(barcode, amark):
+                        match += 1
+                        result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, True))
+            elif barcode == box.boxnumber:
                 match += 1
-                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, True))
-                barcodes.remove(barcode)
-
+                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, True))
         if match == 0:
             if box.boxnumber not in [b.boxnumber for b in result]:
-                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, False))
+                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, False))
+                continue
 
     await state.update_data(busy=False, boxs=result)
     state_info = await state.get_data()
@@ -267,7 +197,7 @@ async def mediagroup_accept_ttns(messages: List[Message], state: FSMContext, bot
     boxs = await get_boxs(data.get('boxs'))
     barcodes = []
     result = [box for box in boxs if box.scaned]
-    barcode_path = os.path.join(config.dir_path, 'files', 'barcodes', str(chat_id))
+    barcode_path = os.path.join(config.dir_path, 'files', 'boxnumbers', str(chat_id))
     boxsnumbers = [box.boxnumber for box in boxs]
 
     for message in messages:
@@ -318,19 +248,19 @@ async def mediagroup_accept_ttns(messages: List[Message], state: FSMContext, bot
         return
     barcodes = list(set(barcodes))
     log.debug(f'Нашел коробки "{barcodes}"')
-    new_boxs = namedtuple('Box', 'name capacity boxnumber count_bottles scaned')
+    new_boxs = namedtuple('Box', 'name capacity boxnumber count_bottles amarks scaned')
 
     for box in boxs:
         match = 0
         for barcode in barcodes:
             if barcode == box.boxnumber:
                 match += 1
-                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, True))
+                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, True))
                 barcodes.remove(barcode)
 
         if match == 0:
             if box.boxnumber not in [b.boxnumber for b in result]:
-                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, False))
+                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, False))
 
     await state.update_data(busy=False, boxs=result)
     state_info = await state.get_data()
@@ -351,7 +281,7 @@ async def photo_accept_ttns(message: Message, state: FSMContext, bot: Bot):
     barcodes = []
 
     # Качаем фотку и сохраняем в папку, название папки = айди чата
-    barcode_path = os.path.join(config.dir_path, 'files', 'barcodes', str(chat_id))
+    barcode_path = os.path.join(config.dir_path, 'files', 'boxnumbers', str(chat_id))
     img = await bot.get_file(message.photo[-1].file_id)
     if not os.path.exists(barcode_path):
         os.mkdir(barcode_path)
@@ -396,19 +326,19 @@ async def photo_accept_ttns(message: Message, state: FSMContext, bot: Bot):
         return
     barcodes = list(set(barcodes))
     log.debug(f'Нашел коробки "{barcodes}"')
-    new_boxs = namedtuple('Box', 'name capacity boxnumber count_bottles scaned')
+    new_boxs = namedtuple('Box', 'name capacity boxnumber count_bottles amarks scaned')
 
     for box in boxs:
         match = 0
         for barcode in barcodes:
             if barcode == box.boxnumber:
                 match += 1
-                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, True))
+                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, True))
                 barcodes.remove(barcode)
 
         if match == 0:
             if box.boxnumber not in [b.boxnumber for b in result]:
-                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, False))
+                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, False))
 
     await state.update_data(busy=False, boxs=result)
     state_info = await state.get_data()
@@ -429,7 +359,7 @@ async def document_accept_ttn(message: Message, state: FSMContext, bot: Bot):
     barcodes = []
 
     # Качаем фотку и сохраняем в папку, название папки = айди чата
-    barcode_path = os.path.join(config.dir_path, 'files', 'barcodes', str(chat_id))
+    barcode_path = os.path.join(config.dir_path, 'files', 'boxnumbers', str(chat_id))
     img = await bot.get_file(message.document.file_id)
     if not os.path.exists(barcode_path):
         os.mkdir(barcode_path)
@@ -473,19 +403,19 @@ async def document_accept_ttn(message: Message, state: FSMContext, bot: Bot):
         return
     barcodes = list(set(barcodes))
     log.debug(f'Нашел коробки "{barcodes}"')
-    new_boxs = namedtuple('Box', 'name capacity boxnumber count_bottles scaned')
+    new_boxs = namedtuple('Box', 'name capacity boxnumber count_bottles amarks scaned')
 
     for box in boxs:
         match = 0
         for barcode in barcodes:
             if barcode == box.boxnumber:
                 match += 1
-                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, True))
+                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, True))
                 barcodes.remove(barcode)
 
         if match == 0:
             if box.boxnumber not in [b.boxnumber for b in result]:
-                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, False))
+                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, False))
 
     await state.update_data(busy=False, boxs=result)
     state_info = await state.get_data()
