@@ -141,7 +141,7 @@ async def message_accept_ttns(message: Message, state: FSMContext, bot: Bot):
     barcodes = []
     for bcode in messages:
         match = 0
-        if re.findall('^[0-9]{9}$|[A-Z0-9]{150}|[A-Z0-9]{68}', bcode):
+        if re.findall('^[0-9]{8,9}$|[A-Z0-9]{150}|[A-Z0-9]{68}', bcode):
             for pos in result:
                 for mark in pos.amarks:
                     if re.findall(bcode, mark):

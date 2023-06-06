@@ -51,12 +51,16 @@ class UTM():
             response = await client.get(f"http://{self.ip}:{self.port}/opt/out")
             return [url.text for url in BeautifulSoup(response.text, 'xml').findAll("url")]
 
+    async def get_all_opt_URLS_text_by_docType(self, docType):
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"http://{self.ip}:{self.port}/opt/out?docType={docType}")
+            return [url.text for url in BeautifulSoup(response.text, 'xml').findAll("url")]
+
     async def get_Waybill_and_FORM2REGINFO(self):
         """Возвращает [id ссылки на который заканчивается FORM2REGINFO, id ссылки на который заканчивается Waybill_v4, номер ттн егаис, имя поставщика, Дата накладной, номер накладной]"""
-        URLS = await self.get_all_opt_URLS_text()
         TTNS = namedtuple('TTNS', 'id_f2r id_wb ttn_egais shipper_name date wbnumber')
-        urls_form = [url for url in URLS if re.findall("FORM2REGINFO", url)]
-        urls_wb = [url for url in URLS if re.findall("WayBill_v4", url)]
+        urls_form = await self.get_all_opt_URLS_text_by_docType("FORM2REGINFO")
+        urls_wb = await self.get_all_opt_URLS_text_by_docType("WayBill_v4")
         if len(urls_form) == 0 and len(urls_wb) == 0:
             print("\033[31m{}\033[0m".format("Нету накладных"))
             logger.error("Нету накладных")
@@ -465,16 +469,7 @@ class UTM():
         return [_ for _ in json.loads(requests.get("http://" + self.ip + ":" + self.port + "/api/rsa").text)["rows"] if _["Owner_ID"] == fsrar][0]
 
 
-def main():
-    utm = UTM(port="8082", ip="10.8.22.158")
-    ttns = utm.send_QueryRestBCode('FB-000005708503477')
-    # tickets = [ticket for ticket in utm.get_all_opt_URLS_text() if re.findall('Ticket', ticket)]
-    # for ticket in tickets:
-    #     print(utm.parse_ticket_result(ticket))
-    # RRSHOP = utm.wait_anwser(utm.send_QueryRestsShop_V2())
-    # print(requests.get(RRSHOP).text)
-    # utm.send_ActWriteOffShop_v2(requests.get("http://10.8.10.78:18082/opt/out/ReplyRestsShop_v2/43537").text)
-
-
 if __name__ == "__main__":
-    main()
+    utm = UTM(port="8082", ip="10.8.23.14")
+    a =asyncio.run(utm.get_Waybill_and_FORM2REGINFO())
+    print(a)

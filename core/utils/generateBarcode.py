@@ -71,7 +71,7 @@ def generate_barcode(cash_number: str, name: str, op_mode: int, measure: int, dc
     path = os.path.join(dirpath, f"{bcode}")
     my_code = Code128(bcode, writer=ImageWriter())
     options = {"font_size": 2, "text_distance": 1.0, 'font_path': os.path.join(config.dir_path, 'files', "Ermilov-bold.otf"), 'module_height': 4.0, 'quiet_zone': 7,
-               'module_width': 0.1}
+               'module_width': 0.15}
     my_code.save(path, options=options)
     path = f"{path}.png"
     im = Image.open(path)
@@ -117,7 +117,7 @@ if __name__ == '__main__':
     paths = []
     for i in names:
         try:
-            paths.append(generate_barcode('cash-1232-1', i, 192, 1, 1, 1))
+            paths.append(generate_barcode(cash_number='cash-123-1', name=i, op_mode=192, measure=1, dcode=1,tmctype=7,price='30'))
         except ValueError:
             print(f'VALUES = {i}')
             continue
