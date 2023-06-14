@@ -1,6 +1,7 @@
 from loguru import logger
 from sqlalchemy import select, update
 from sqlalchemy.orm import *
+from sqlalchemy.exc import OperationalError
 
 from core.database.modelBOT import *
 
@@ -48,11 +49,14 @@ async def update_client_info(**kwargs):
 
 
 async def get_client_info(**kwargs):
-    with Session() as session:
-        client = session.query(Clients).filter(Clients.chat_id == str(kwargs["chat_id"])).first()
-        if client is None:
-            return False
-        return client
+    try:
+        with Session() as session:
+            client = session.query(Clients).filter(Clients.chat_id == str(kwargs["chat_id"])).first()
+            if client is None:
+                return False
+            return client
+    except OperationalError as ex:
+        await get_client_info(**kwargs)
 
 
 async def add_client_cashNumber(**kwargs):

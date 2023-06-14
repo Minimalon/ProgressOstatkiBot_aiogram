@@ -1,5 +1,5 @@
 import sqlalchemy.orm
-from sqlalchemy import create_engine, String, Column, DateTime, Boolean, BigInteger, Integer
+from sqlalchemy import create_engine, String, Column, DateTime, Boolean, BigInteger, Integer, Identity
 import config
 from sqlalchemy.sql import func
 
@@ -9,6 +9,7 @@ Base = sqlalchemy.orm.declarative_base()
 
 class CashInfo(Base):
     __tablename__ = 'cash_info'
+    
     id = Column(BigInteger, nullable=False, primary_key=True)
     name = Column(String(255), nullable=False)
     inn = Column(String(255), nullable=False)

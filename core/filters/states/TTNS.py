@@ -141,13 +141,14 @@ async def message_accept_ttns(message: Message, state: FSMContext, bot: Bot):
     barcodes = []
     for bcode in messages:
         match = 0
-        if re.findall('^[0-9]{8,9}$|[A-Z0-9]{150}|[A-Z0-9]{68}', bcode):
+        if re.findall('^[0-9]{8,9}$||', bcode) or re.findall('^[A-Z0-9]{150}$', bcode) or re.findall('^[A-Z0-9]{68}$', bcode):
             for pos in result:
                 for mark in pos.amarks:
                     if re.findall(bcode, mark):
-                        match +=1
+                        match += 1
                         log.debug(f'Данная акцизка "{bcode}" уже принята')
-                        await bot.send_message(message.chat.id, texts.error_head + f'Данная акцизная марка "<code>{bcode}</code>" уже принята. Отправьте другую акцизную марку')
+                        await bot.send_message(message.chat.id,
+                                               texts.error_head + f'Данная акцизная марка "<code>{bcode}</code>" уже принята. Отправьте другую акцизную марку')
                         break
             if match == 0:
                 barcodes.append(bcode)
@@ -156,7 +157,7 @@ async def message_accept_ttns(message: Message, state: FSMContext, bot: Bot):
                 text = texts.error_head + f'Данной коробки <code>"{bcode}"</code> не найдено в накладной'
                 await bot.send_message(message.chat.id, text)
                 log.debug(f'Данной коробки "{bcode}" не найдено в накладной')
-            elif bcode in (b.boxnumber for b in result)  and not match:
+            elif bcode in (b.boxnumber for b in result) and not match:
                 text = texts.error_head + f'Вы уже отправляли данную коробку\n"<code>{str(bcode).strip()}</code>"'
                 await bot.send_message(message.chat.id, text)
                 log.debug(f'Вы уже отправляли данную коробку "{bcode}"')
@@ -166,7 +167,7 @@ async def message_accept_ttns(message: Message, state: FSMContext, bot: Bot):
     if len(barcodes) == 0:
         await state.update_data(busy=False)
         return
-    log.info(len(boxs))
+    log.info(f"Кол-во бутылок на фото {len(boxs)}")
     for box in boxs:
         match = 0
         for barcode in barcodes:
