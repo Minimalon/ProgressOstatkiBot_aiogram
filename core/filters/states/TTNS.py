@@ -152,7 +152,7 @@ async def message_accept_ttns(message: Message, state: FSMContext, bot: Bot):
                         break
             if match == 0:
                 barcodes.append(bcode)
-        else:
+        elif re.findall('^[0-9]{27}$', bcode):
             if bcode not in (b.boxnumber for b in boxs) and match:
                 text = texts.error_head + f'Данной коробки <code>"{bcode}"</code> не найдено в накладной'
                 await bot.send_message(message.chat.id, text)
@@ -162,12 +162,13 @@ async def message_accept_ttns(message: Message, state: FSMContext, bot: Bot):
                 await bot.send_message(message.chat.id, text)
                 log.debug(f'Вы уже отправляли данную коробку "{bcode}"')
             else:
+                log.debug(f'Отправили коробку {bcode}')
                 barcodes.append(bcode)
-
+        else:
+            await bot.send_message(message.chat.id, texts.error_head + f'Данная позиция "<code>{bcode}</code>" не коробка, и не акцизная марка. Попробуйте снова')
     if len(barcodes) == 0:
         await state.update_data(busy=False)
         return
-    log.info(f"Кол-во бутылок на фото {len(boxs)}")
     for box in boxs:
         match = 0
         for barcode in barcodes:
