@@ -141,7 +141,7 @@ async def message_accept_ttns(message: Message, state: FSMContext, bot: Bot):
     barcodes = []
     for bcode in messages:
         match = 0
-        if re.findall('^[0-9]{8,9}$||', bcode) or re.findall('^[A-Z0-9]{150}$', bcode) or re.findall('^[A-Z0-9]{68}$', bcode):
+        if re.findall('^[0-9]{8,9}$', bcode) or re.findall('^[A-Z0-9]{150}$', bcode) or re.findall('^[A-Z0-9]{68}$', bcode):
             for pos in result:
                 for mark in pos.amarks:
                     if re.findall(bcode, mark):
@@ -171,13 +171,15 @@ async def message_accept_ttns(message: Message, state: FSMContext, bot: Bot):
     for box in boxs:
         match = 0
         for barcode in barcodes:
-            if re.findall('^[0-9]{9}$|[A-Z0-9]{150}|[A-Z0-9]{68}', barcode):
+            if re.findall('^[0-9]{8,9}$', barcode) or re.findall('^[A-Z0-9]{150}$', barcode) or re.findall('^[A-Z0-9]{68}$', barcode):
                 for amark in box.amarks:
                     if re.findall(barcode, amark):
                         match += 1
+                        log.info(f'Принял акцизу {barcode}')
                         result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, True))
             elif barcode == box.boxnumber:
                 match += 1
+                log.info(f'Принял коробку {barcode}')
                 result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, True))
         if match == 0:
             if box.boxnumber not in [b.boxnumber for b in result]:
@@ -186,6 +188,8 @@ async def message_accept_ttns(message: Message, state: FSMContext, bot: Bot):
 
     await state.update_data(busy=False, boxs=result)
     state_info = await state.get_data()
+    box_scaned = [box for box in result if box.scaned]
+    log.info(f'Принято {len(box_scaned)}/{len(result)}')
     await message.answer(texts.accept_text(result), reply_markup=getKeyboard_accept_ttn(state_info))
 
 
@@ -256,6 +260,7 @@ async def mediagroup_accept_ttns(messages: List[Message], state: FSMContext, bot
         for barcode in barcodes:
             if barcode == box.boxnumber:
                 match += 1
+                log.info(f'Принял коробку {barcode}')
                 result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, True))
                 barcodes.remove(barcode)
 
@@ -265,6 +270,8 @@ async def mediagroup_accept_ttns(messages: List[Message], state: FSMContext, bot
 
     await state.update_data(busy=False, boxs=result)
     state_info = await state.get_data()
+    box_scaned = [box for box in result if box.scaned]
+    log.info(f'Принято {len(box_scaned)}/{len(result)}')
     await bot.send_message(messages[0].chat.id, texts.accept_text(result), reply_markup=getKeyboard_accept_ttn(state_info))
 
 
@@ -334,6 +341,7 @@ async def photo_accept_ttns(message: Message, state: FSMContext, bot: Bot):
         for barcode in barcodes:
             if barcode == box.boxnumber:
                 match += 1
+                log.info(f'Принял коробку {barcode}')
                 result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, True))
                 barcodes.remove(barcode)
 
@@ -343,6 +351,8 @@ async def photo_accept_ttns(message: Message, state: FSMContext, bot: Bot):
 
     await state.update_data(busy=False, boxs=result)
     state_info = await state.get_data()
+    box_scaned = [box for box in result if box.scaned]
+    log.info(f'Принято {len(box_scaned)}/{len(result)}')
     await bot.send_message(message.chat.id, texts.accept_text(result), reply_markup=getKeyboard_accept_ttn(state_info))
 
 
@@ -411,6 +421,7 @@ async def document_accept_ttn(message: Message, state: FSMContext, bot: Bot):
         for barcode in barcodes:
             if barcode == box.boxnumber:
                 match += 1
+                log.info(f'Принял коробку {barcode}')
                 result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, True))
                 barcodes.remove(barcode)
 
@@ -420,6 +431,8 @@ async def document_accept_ttn(message: Message, state: FSMContext, bot: Bot):
 
     await state.update_data(busy=False, boxs=result)
     state_info = await state.get_data()
+    box_scaned = [box for box in result if box.scaned]
+    log.info(f'Принято {len(box_scaned)}/{len(result)}')
     await bot.send_message(message.chat.id, texts.accept_text(result), reply_markup=getKeyboard_accept_ttn(state_info))
 
 
