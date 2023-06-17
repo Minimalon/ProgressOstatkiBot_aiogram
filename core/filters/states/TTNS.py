@@ -59,7 +59,7 @@ async def choose_accept_ttns(call: CallbackQuery, state: FSMContext):
         return
     ttns = await utm.get_Waybill_and_FORM2REGINFO()
     if not ttns:
-        await call.message.edit_text(texts.error_head + 'Не найдено накладных\n'
+        await call.message.edit_text(texts.error_head + 'Не найдено накладных для подтверждения\n'
                                                         'Можете обратиться в тех.поддержку', reply_markup=getKeyboard_tehpod_url())
         return
     await call.message.edit_text('Выберите накладную', reply_markup=getKeyboard_choose_ttn(ttns), parse_mode='HTML')
@@ -152,7 +152,7 @@ async def message_accept_ttns(message: Message, state: FSMContext, bot: Bot):
                         break
             if match == 0:
                 barcodes.append(bcode)
-        elif re.findall('^[0-9]{27}$', bcode):
+        elif re.findall('^[0-9]{26,28}$', bcode):
             if bcode not in (b.boxnumber for b in boxs) and match:
                 text = texts.error_head + f'Данной коробки <code>"{bcode}"</code> не найдено в накладной'
                 await bot.send_message(message.chat.id, text)
