@@ -8,14 +8,14 @@ from aiogram.filters import Command
 from aiogram.fsm.storage.redis import RedisStorage
 
 from core.handlers import basic, contact
-from core.filters.states import ostatki, TTNS
+from core.filters.states import ostatki, TTNS, inventory
 from core.filters.states.goods import createBarcode, changePrice
 from core.filters.iscontact import IsTrueContact
 from core.utils.callbackdata import *
 from core.filters.states.ostatki import *
 from core.utils.states import *
-from core.utils.commands import get_commands
-from core.filters.states.logins import loginGoods, loginTTN, loginOstatki
+from core.utils.commands import get_commands, get_admin_commands
+from core.filters.states.logins import loginGoods, loginTTN, loginOstatki, loginInventory
 
 
 @logger.catch()
@@ -26,6 +26,7 @@ async def start():
 
     bot = Bot(token=config.token, parse_mode='HTML')
     await get_commands(bot)
+    await get_admin_commands(bot)
     storage = RedisStorage.from_url(config.redisStorage)
     dp = Dispatcher(storage=storage)
 
@@ -36,6 +37,7 @@ async def start():
     # COMMANDS
     dp.message.register(basic.get_start, Command(commands=['start']))
     dp.message.register(basic.my_id, Command(commands=['id']))
+    dp.message.register(basic.clear, Command(commands=['clear']))
 
     # CONTACT REGISTRATION
     dp.message.register(contact.get_true_contact, F.contact, IsTrueContact())
@@ -97,6 +99,20 @@ async def start():
     dp.message.register(changePrice.document_barcode, ChangePrice.barcode, F.document)
     dp.message.register(changePrice.text_barcode, ChangePrice.barcode)
     dp.message.register(changePrice.final, ChangePrice.price)
+
+# inventory
+    # логин
+    dp.callback_query.register(loginInventory.enter_cash_number, F.data == 'inventory')
+    dp.message.register(loginInventory.choose_entity, Inventory.enter_cashNumber)
+    dp.callback_query.register(loginInventory.enter_inn, ChooseEntity.filter(), Inventory.choose_entity)
+    dp.message.register(loginInventory.menu, Inventory.inn)
+    dp.callback_query.register(inventory.start_inventory, F.data == 'start_inventory')
+    dp.message.register(inventory.message_inventory, Inventory.scaning)
+    dp.callback_query.register(inventory.detailed_inventory, F.data == 'detailed_invetory')
+
+
+
+
 
     try:
         await dp.start_polling(bot)

@@ -16,7 +16,7 @@ import config
 from core.utils import CURL
 
 
-class UTM():
+class UTM:
     def __init__(self, port, ip="localhost"):
         self.port = port
         self.ip = ip

@@ -11,9 +11,27 @@ def getKeyboard_startMenu():
     kb.button(text="Остатки", callback_data='ostatki')
     kb.button(text="Накладные", callback_data='WayBills')
     kb.button(text="Товары", callback_data='goods')
+    kb.button(text="Инвентаризация", callback_data='inventory')
     kb.adjust(2, repeat=True)
     return kb.as_markup()
 
+
+def getKeyboard_inventory():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Начать сканирование", callback_data='start_inventory')
+    kb.adjust(1, repeat=True)
+    return kb.as_markup()
+def getKeyboard_end_inventory():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Подробная информация о бутылках", callback_data='detailed_invetory')
+    kb.button(text="Завершить сканирование", callback_data='end_invetory')
+    kb.adjust(1, repeat=True)
+    return kb.as_markup()
+def getKeyboard_detailed_inventory():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Завершить сканирование", callback_data='end_invetory')
+    kb.adjust(1, repeat=True)
+    return kb.as_markup()
 
 def getKeyboard_ostatki(inn, fsrar):
     kb = InlineKeyboardBuilder()
@@ -121,6 +139,23 @@ def getKeyboard_entity(cash_info, UTM_8082, UTM_18082):
     if ooo_inn and ooo_fsrar and UTM_8082:
         kb.button(text=ooo_name, callback_data=ChooseEntity(inn=ooo_inn, fsrar=ooo_fsrar, port='8082', ip=cash_info.ip))
     if ip_inn and ip_fsrar and UTM_18082:
+        kb.button(text=ip_name, callback_data=ChooseEntity(inn=ip_inn, fsrar=ip_fsrar, port='18082', ip=cash_info.ip))
+    kb.adjust(1, repeat=True)
+    return kb.as_markup()
+
+def getKeyboard_entity_offline(cash_info):
+    kb = InlineKeyboardBuilder()
+    try:
+        ooo_inn, ooo_name, ooo_fsrar = (cash_info.inn, cash_info.ooo_name, cash_info.fsrar)
+    except AttributeError:
+        ooo_inn, ooo_name, ooo_fsrar = False, False, False
+    try:
+        ip_inn, ip_name, ip_fsrar = (cash_info.ip_inn, cash_info.ip_name, cash_info.fsrar2)
+    except AttributeError:
+        ip_inn, ip_name, ip_fsrar = False, False, False
+    if ooo_inn and ooo_fsrar:
+        kb.button(text=ooo_name, callback_data=ChooseEntity(inn=ooo_inn, fsrar=ooo_fsrar, port='8082', ip=cash_info.ip))
+    if ip_inn and ip_fsrar:
         kb.button(text=ip_name, callback_data=ChooseEntity(inn=ip_inn, fsrar=ip_fsrar, port='18082', ip=cash_info.ip))
     kb.adjust(1, repeat=True)
     return kb.as_markup()

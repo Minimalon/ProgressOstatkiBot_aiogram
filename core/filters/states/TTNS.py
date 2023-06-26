@@ -25,6 +25,8 @@ from core.utils.states import StateTTNs
 from core.utils.UTM import UTM
 from core.utils.callbackdata import ChooseEntity, AcceptTTN, SendAcceptTTN
 
+lock = asyncio.Lock()
+
 
 async def read_barcodes_from_image(image_path):
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
@@ -129,115 +131,196 @@ async def get_boxs(boxs):
 
 
 async def message_accept_ttns(message: Message, state: FSMContext, bot: Bot):
-    await wait_busy(state)
-    log = logger.bind(first_name=message.chat.first_name, chat_id=message.chat.id)
-    data = await state.get_data()
-    messages = message.text.split()
-    log.info(f'Написали штрихкод(-а) "{messages}"')
-    boxs = await get_boxs(data.get('boxs'))
-    result = [box for box in boxs if box.scaned]
-    new_boxs = namedtuple('Box', 'name capacity boxnumber count_bottles amarks scaned')
+    async with lock:
+        log = logger.bind(first_name=message.chat.first_name, chat_id=message.chat.id)
+        data = await state.get_data()
+        messages = message.text.split()
+        log.info(f'Написали штрихкод(-а) "{messages}"')
+        boxs = await get_boxs(data.get('boxs'))
+        result = [box for box in boxs if box.scaned]
+        new_boxs = namedtuple('Box', 'name capacity boxnumber count_bottles amarks scaned')
 
-    barcodes = []
-    for bcode in messages:
-        match = 0
-        if re.findall('^[0-9]{8,9}$', bcode) or re.findall('^[A-Z0-9]{150}$', bcode) or re.findall('^[A-Z0-9]{68}$', bcode):
-            for pos in result:
-                for mark in pos.amarks:
-                    if re.findall(bcode, mark):
-                        match += 1
-                        log.debug(f'Данная акцизка "{bcode}" уже принята')
-                        await bot.send_message(message.chat.id,
-                                               texts.error_head + f'Данная акцизная марка "<code>{bcode}</code>" уже принята. Отправьте другую акцизную марку')
-                        break
-            if match == 0:
-                barcodes.append(bcode)
-        elif re.findall('^[0-9]{26,28}$', bcode):
-            if bcode not in (b.boxnumber for b in boxs) and match:
-                text = texts.error_head + f'Данной коробки <code>"{bcode}"</code> не найдено в накладной'
-                await bot.send_message(message.chat.id, text)
-                log.debug(f'Данной коробки "{bcode}" не найдено в накладной')
-            elif bcode in (b.boxnumber for b in result) and not match:
-                text = texts.error_head + f'Вы уже отправляли данную коробку\n"<code>{str(bcode).strip()}</code>"'
-                await bot.send_message(message.chat.id, text)
-                log.debug(f'Вы уже отправляли данную коробку "{bcode}"')
+        barcodes = []
+        for bcode in messages:
+            match = 0
+            if re.findall('^[0-9]{8,9}$', bcode) or re.findall('^[A-Z0-9]{150}$', bcode) or re.findall('^[A-Z0-9]{68}$', bcode):
+                for pos in result:
+                    for mark in pos.amarks:
+                        if re.findall(bcode, mark):
+                            match += 1
+                            log.debug(f'Данная акцизка "{bcode}" уже принята')
+                            await bot.send_message(message.chat.id,
+                                                   texts.error_head + f'Данная акцизная марка "<code>{bcode}</code>" уже принята. Отправьте другую акцизную марку')
+                            break
+                if match == 0:
+                    barcodes.append(bcode)
+            elif re.findall('^[0-9]{26,28}$', bcode):
+                if bcode not in (b.boxnumber for b in boxs) and match:
+                    text = texts.error_head + f'Данной коробки <code>"{bcode}"</code> не найдено в накладной'
+                    await bot.send_message(message.chat.id, text)
+                    log.debug(f'Данной коробки "{bcode}" не найдено в накладной')
+                elif bcode in (b.boxnumber for b in result) and not match:
+                    text = texts.error_head + f'Вы уже отправляли данную коробку\n"<code>{str(bcode).strip()}</code>"'
+                    await bot.send_message(message.chat.id, text)
+                    log.debug(f'Вы уже отправляли данную коробку "{bcode}"')
+                else:
+                    log.debug(f'Отправили коробку {bcode}')
+                    barcodes.append(bcode)
             else:
-                log.debug(f'Отправили коробку {bcode}')
-                barcodes.append(bcode)
-        else:
-            await bot.send_message(message.chat.id, texts.error_head + f'Данная позиция "<code>{bcode}</code>" не коробка, и не акцизная марка. Попробуйте снова')
-    if len(barcodes) == 0:
-        await state.update_data(busy=False)
-        return
-    for box in boxs:
-        match = 0
-        for barcode in barcodes:
-            if re.findall('^[0-9]{8,9}$', barcode) or re.findall('^[A-Z0-9]{150}$', barcode) or re.findall('^[A-Z0-9]{68}$', barcode):
-                for amark in box.amarks:
-                    if re.findall(barcode, amark):
-                        match += 1
-                        log.info(f'Принял акцизу {barcode}')
-                        result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, True))
-            elif barcode == box.boxnumber:
-                match += 1
-                log.info(f'Принял коробку {barcode}')
-                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, True))
-        if match == 0:
-            if box.boxnumber not in [b.boxnumber for b in result]:
-                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, False))
-                continue
+                await bot.send_message(message.chat.id, texts.error_head + f'Данная позиция "<code>{bcode}</code>" не коробка, и не акцизная марка. Попробуйте снова')
+        if len(barcodes) == 0:
+            await state.update_data(busy=False)
+            return
+        for box in boxs:
+            match = 0
+            for barcode in barcodes:
+                if re.findall('^[0-9]{8,9}$', barcode) or re.findall('^[A-Z0-9]{150}$', barcode) or re.findall('^[A-Z0-9]{68}$', barcode):
+                    for amark in box.amarks:
+                        if re.findall(barcode, amark):
+                            match += 1
+                            log.info(f'Принял акцизу {barcode}')
+                            result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, True))
+                elif barcode == box.boxnumber:
+                    match += 1
+                    log.info(f'Принял коробку {barcode}')
+                    result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, True))
+            if match == 0:
+                if box.boxnumber not in [b.boxnumber for b in result]:
+                    result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, False))
+                    continue
 
-    await state.update_data(busy=False, boxs=result)
-    state_info = await state.get_data()
-    box_scaned = [box for box in result if box.scaned]
-    log.info(f'Принято {len(box_scaned)}/{len(result)}')
-    await message.answer(texts.accept_text(result), reply_markup=getKeyboard_accept_ttn(state_info))
+        await state.update_data(busy=False, boxs=result)
+        state_info = await state.get_data()
+        box_scaned = [box for box in result if box.scaned]
+        log.info(f'Принято {len(box_scaned)}/{len(result)}')
+        await message.answer(texts.accept_text(result), reply_markup=getKeyboard_accept_ttn(state_info))
 
 
 @media_group_handler
 async def mediagroup_accept_ttns(messages: List[Message], state: FSMContext, bot: Bot):
-    await wait_busy(state)
-    data = await state.get_data()
-    chat_id = messages[0].chat.id
-    log = logger.bind(first_name=messages[0].chat.first_name, chat_id=chat_id)
-    boxs = await get_boxs(data.get('boxs'))
-    barcodes = []
-    result = [box for box in boxs if box.scaned]
-    barcode_path = os.path.join(config.dir_path, 'files', 'boxnumbers', str(chat_id))
-    boxsnumbers = [box.boxnumber for box in boxs]
+    async with lock:
+        data = await state.get_data()
+        chat_id = messages[0].chat.id
+        log = logger.bind(first_name=messages[0].chat.first_name, chat_id=chat_id)
+        boxs = await get_boxs(data.get('boxs'))
+        barcodes = []
+        result = [box for box in boxs if box.scaned]
+        barcode_path = os.path.join(config.dir_path, 'files', 'boxnumbers', str(chat_id))
+        boxsnumbers = [box.boxnumber for box in boxs]
 
-    for message in messages:
-        file = await bot.get_file(message.photo[-1].file_id)
+        for message in messages:
+            file = await bot.get_file(message.photo[-1].file_id)
 
+            if not os.path.exists(barcode_path):
+                os.mkdir(barcode_path)
+
+            file_path = os.path.join(barcode_path, f'barcode_{message.message_id}.jpg')
+            await bot.download_file(file.file_path, file_path)
+        for file in os.listdir(barcode_path):
+            file = os.path.join(barcode_path, file)
+            try:
+                barcodes_from_img = await read_barcodes_from_image(file)
+                log.info(f'Отсканировал фото "{barcodes_from_img}"')
+
+                if len(barcodes_from_img) > 0:
+                    for bcode in barcodes_from_img:
+                        if bcode not in [b.boxnumber for b in result]:
+                            barcodes.append(bcode)
+                        else:
+                            text = texts.error_head + f'Вы уже отправляли данную коробку\n"<code>{str(bcode).strip()}</code>"'
+                            await bot.send_message(messages[0].chat.id, text)
+                            log.debug(f'Вы уже отправляли данную коробку "{bcode}"')
+                else:
+                    await check_file_exist(file, 'На данном фото <b><u>не найдено</u></b> штрихкодов', bot, messages[0])
+
+                match = 0
+                for bcode in barcodes_from_img:
+                    if bcode in boxsnumbers:
+                        match += 1
+                if match == 0:
+                    text = f'Данной коробки <code>"{barcodes_from_img}"</code> не найдено в накладной'
+                    await check_file_exist(file, text, bot, messages[0])
+
+                if os.path.exists(file):
+                    await asyncio.sleep(0.20)
+                    os.remove(file)
+            except TypeError:
+                logger.debug(f'TypeError: {file}')
+            except FileNotFoundError:
+                log.debug(f'Файл не найден "{file}"')
+            except PermissionError:
+                log.debug(f'Файл занят другим процессом "{file}"')
+
+        if len(barcodes) == 0:
+            await state.update_data(busy=False)
+            return
+        barcodes = list(set(barcodes))
+        log.debug(f'Нашел коробки "{barcodes}"')
+        new_boxs = namedtuple('Box', 'name capacity boxnumber count_bottles amarks scaned')
+
+        for box in boxs:
+            match = 0
+            for barcode in barcodes:
+                if barcode == box.boxnumber:
+                    match += 1
+                    log.info(f'Принял коробку {barcode}')
+                    result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, True))
+                    barcodes.remove(barcode)
+
+            if match == 0:
+                if box.boxnumber not in [b.boxnumber for b in result]:
+                    result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, False))
+
+        await state.update_data(busy=False, boxs=result)
+        state_info = await state.get_data()
+        box_scaned = [box for box in result if box.scaned]
+        log.info(f'Принято {len(box_scaned)}/{len(result)}')
+        await bot.send_message(messages[0].chat.id, texts.accept_text(result), reply_markup=getKeyboard_accept_ttn(state_info))
+
+
+async def photo_accept_ttns(message: Message, state: FSMContext, bot: Bot):
+    async with lock:
+
+        chat_id = message.chat.id
+        data = await state.get_data()
+        log = logger.bind(first_name=message.chat.first_name, chat_id=chat_id)
+
+        # Коробки
+        boxs = await get_boxs(data.get('boxs'))
+        boxsnumbers = [box.boxnumber for box in boxs]
+        result = [box for box in boxs if box.scaned]
+        barcodes = []
+
+        # Качаем фотку и сохраняем в папку, название папки = айди чата
+        barcode_path = os.path.join(config.dir_path, 'files', 'boxnumbers', str(chat_id))
+        img = await bot.get_file(message.photo[-1].file_id)
         if not os.path.exists(barcode_path):
             os.mkdir(barcode_path)
+        file = os.path.join(barcode_path, f'barcode_{message.message_id}.jpg')
+        await bot.download_file(img.file_path, file)
 
-        file_path = os.path.join(barcode_path, f'barcode_{message.message_id}.jpg')
-        await bot.download_file(file.file_path, file_path)
-    for file in os.listdir(barcode_path):
-        file = os.path.join(barcode_path, file)
         try:
             barcodes_from_img = await read_barcodes_from_image(file)
             log.info(f'Отсканировал фото "{barcodes_from_img}"')
 
-            if len(barcodes_from_img) > 0:
+            if len(barcodes_from_img) > 0:  # Если нашлись штрихкода в картинке
                 for bcode in barcodes_from_img:
-                    if bcode not in [b.boxnumber for b in result]:
+                    if bcode not in [b.boxnumber for b in result]:  # Если найденно шк нет в уже принятых коробках
                         barcodes.append(bcode)
                     else:
                         text = texts.error_head + f'Вы уже отправляли данную коробку\n"<code>{str(bcode).strip()}</code>"'
-                        await bot.send_message(messages[0].chat.id, text)
+                        await bot.send_message(message.chat.id, text)
                         log.debug(f'Вы уже отправляли данную коробку "{bcode}"')
             else:
-                await check_file_exist(file, 'На данном фото <b><u>не найдено</u></b> штрихкодов', bot, messages[0])
+                await check_file_exist(file, 'На данном фото <b><u>не найдено</u></b> штрихкодов', bot, message)
 
             match = 0
-            for bcode in barcodes_from_img:
+            for bcode in barcodes_from_img:  # Проверяю найденный шк с коробками из накладной
                 if bcode in boxsnumbers:
                     match += 1
             if match == 0:
                 text = f'Данной коробки <code>"{barcodes_from_img}"</code> не найдено в накладной'
-                await check_file_exist(file, text, bot, messages[0])
+                await check_file_exist(file, text, bot, message)
 
             if os.path.exists(file):
                 await asyncio.sleep(0.20)
@@ -249,192 +332,112 @@ async def mediagroup_accept_ttns(messages: List[Message], state: FSMContext, bot
         except PermissionError:
             log.debug(f'Файл занят другим процессом "{file}"')
 
-    if len(barcodes) == 0:
-        await state.update_data(busy=False)
-        return
-    barcodes = list(set(barcodes))
-    log.debug(f'Нашел коробки "{barcodes}"')
-    new_boxs = namedtuple('Box', 'name capacity boxnumber count_bottles amarks scaned')
+        if len(barcodes) == 0:
+            await state.update_data(busy=False)
+            return
+        barcodes = list(set(barcodes))
+        log.debug(f'Нашел коробки "{barcodes}"')
+        new_boxs = namedtuple('Box', 'name capacity boxnumber count_bottles amarks scaned')
 
-    for box in boxs:
-        match = 0
-        for barcode in barcodes:
-            if barcode == box.boxnumber:
-                match += 1
-                log.info(f'Принял коробку {barcode}')
-                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, True))
-                barcodes.remove(barcode)
+        for box in boxs:
+            match = 0
+            for barcode in barcodes:
+                if barcode == box.boxnumber:
+                    match += 1
+                    log.info(f'Принял коробку {barcode}')
+                    result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, True))
+                    barcodes.remove(barcode)
 
-        if match == 0:
-            if box.boxnumber not in [b.boxnumber for b in result]:
-                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, False))
+            if match == 0:
+                if box.boxnumber not in [b.boxnumber for b in result]:
+                    result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, False))
 
-    await state.update_data(busy=False, boxs=result)
-    state_info = await state.get_data()
-    box_scaned = [box for box in result if box.scaned]
-    log.info(f'Принято {len(box_scaned)}/{len(result)}')
-    await bot.send_message(messages[0].chat.id, texts.accept_text(result), reply_markup=getKeyboard_accept_ttn(state_info))
-
-
-async def photo_accept_ttns(message: Message, state: FSMContext, bot: Bot):
-    data = await state.get_data()
-    await wait_busy(state)
-
-    chat_id = message.chat.id
-    log = logger.bind(first_name=message.chat.first_name, chat_id=chat_id)
-
-    # Коробки
-    boxs = await get_boxs(data.get('boxs'))
-    boxsnumbers = [box.boxnumber for box in boxs]
-    result = [box for box in boxs if box.scaned]
-    barcodes = []
-
-    # Качаем фотку и сохраняем в папку, название папки = айди чата
-    barcode_path = os.path.join(config.dir_path, 'files', 'boxnumbers', str(chat_id))
-    img = await bot.get_file(message.photo[-1].file_id)
-    if not os.path.exists(barcode_path):
-        os.mkdir(barcode_path)
-    file = os.path.join(barcode_path, f'barcode_{message.message_id}.jpg')
-    await bot.download_file(img.file_path, file)
-
-    try:
-        barcodes_from_img = await read_barcodes_from_image(file)
-        log.info(f'Отсканировал фото "{barcodes_from_img}"')
-
-        if len(barcodes_from_img) > 0:  # Если нашлись штрихкода в картинке
-            for bcode in barcodes_from_img:
-                if bcode not in [b.boxnumber for b in result]:  # Если найденно шк нет в уже принятых коробках
-                    barcodes.append(bcode)
-                else:
-                    text = texts.error_head + f'Вы уже отправляли данную коробку\n"<code>{str(bcode).strip()}</code>"'
-                    await bot.send_message(message.chat.id, text)
-                    log.debug(f'Вы уже отправляли данную коробку "{bcode}"')
-        else:
-            await check_file_exist(file, 'На данном фото <b><u>не найдено</u></b> штрихкодов', bot, message)
-
-        match = 0
-        for bcode in barcodes_from_img:  # Проверяю найденный шк с коробками из накладной
-            if bcode in boxsnumbers:
-                match += 1
-        if match == 0:
-            text = f'Данной коробки <code>"{barcodes_from_img}"</code> не найдено в накладной'
-            await check_file_exist(file, text, bot, message)
-
-        if os.path.exists(file):
-            await asyncio.sleep(0.20)
-            os.remove(file)
-    except TypeError:
-        logger.debug(f'TypeError: {file}')
-    except FileNotFoundError:
-        log.debug(f'Файл не найден "{file}"')
-    except PermissionError:
-        log.debug(f'Файл занят другим процессом "{file}"')
-
-    if len(barcodes) == 0:
-        await state.update_data(busy=False)
-        return
-    barcodes = list(set(barcodes))
-    log.debug(f'Нашел коробки "{barcodes}"')
-    new_boxs = namedtuple('Box', 'name capacity boxnumber count_bottles amarks scaned')
-
-    for box in boxs:
-        match = 0
-        for barcode in barcodes:
-            if barcode == box.boxnumber:
-                match += 1
-                log.info(f'Принял коробку {barcode}')
-                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, True))
-                barcodes.remove(barcode)
-
-        if match == 0:
-            if box.boxnumber not in [b.boxnumber for b in result]:
-                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, False))
-
-    await state.update_data(busy=False, boxs=result)
-    state_info = await state.get_data()
-    box_scaned = [box for box in result if box.scaned]
-    log.info(f'Принято {len(box_scaned)}/{len(result)}')
-    await bot.send_message(message.chat.id, texts.accept_text(result), reply_markup=getKeyboard_accept_ttn(state_info))
+        await state.update_data(busy=False, boxs=result)
+        state_info = await state.get_data()
+        box_scaned = [box for box in result if box.scaned]
+        log.info(f'Принято {len(box_scaned)}/{len(result)}')
+        await bot.send_message(message.chat.id, texts.accept_text(result), reply_markup=getKeyboard_accept_ttn(state_info))
 
 
 async def document_accept_ttn(message: Message, state: FSMContext, bot: Bot):
-    data = await state.get_data()
-    await wait_busy(state)
+    async with lock:
 
-    chat_id = message.chat.id
-    log = logger.bind(first_name=message.chat.first_name, chat_id=chat_id)
+        data = await state.get_data()
 
-    # Коробки
-    boxs = await get_boxs(data.get('boxs'))
-    boxsnumbers = [box.boxnumber for box in boxs]
-    result = [box for box in boxs if box.scaned]
-    barcodes = []
+        chat_id = message.chat.id
+        log = logger.bind(first_name=message.chat.first_name, chat_id=chat_id)
 
-    # Качаем фотку и сохраняем в папку, название папки = айди чата
-    barcode_path = os.path.join(config.dir_path, 'files', 'boxnumbers', str(chat_id))
-    img = await bot.get_file(message.document.file_id)
-    if not os.path.exists(barcode_path):
-        os.mkdir(barcode_path)
-    file = os.path.join(barcode_path, f'barcode_{message.message_id}.jpg')
-    await bot.download_file(img.file_path, file)
-    try:
-        barcodes_from_img = await read_barcodes_from_image(file)
-        log.info(f'Отсканировал фото "{barcodes_from_img}"')
+        # Коробки
+        boxs = await get_boxs(data.get('boxs'))
+        boxsnumbers = [box.boxnumber for box in boxs]
+        result = [box for box in boxs if box.scaned]
+        barcodes = []
 
-        if len(barcodes_from_img) > 0:  # Если нашлись штрихкода в картинке
-            for bcode in barcodes_from_img:
-                if bcode not in [b.boxnumber for b in result]:  # Если найденно шк нет в уже принятых коробках
-                    barcodes.append(bcode)
-                else:
-                    text = texts.error_head + f'Вы уже отправляли данную коробку\n"<code>{str(bcode).strip()}</code>"'
-                    await bot.send_message(message.chat.id, text)
-                    log.debug(f'Вы уже отправляли данную коробку "{bcode}"')
-        else:
-            await check_file_exist(file, 'На данном фото <b><u>не найдено</u></b> штрихкодов', bot, message)
+        # Качаем фотку и сохраняем в папку, название папки = айди чата
+        barcode_path = os.path.join(config.dir_path, 'files', 'boxnumbers', str(chat_id))
+        img = await bot.get_file(message.document.file_id)
+        if not os.path.exists(barcode_path):
+            os.mkdir(barcode_path)
+        file = os.path.join(barcode_path, f'barcode_{message.message_id}.jpg')
+        await bot.download_file(img.file_path, file)
+        try:
+            barcodes_from_img = await read_barcodes_from_image(file)
+            log.info(f'Отсканировал фото "{barcodes_from_img}"')
 
-        match = 0
-        for bcode in barcodes_from_img:  # Проверяю найденный шк с коробками из накладной
-            if bcode in boxsnumbers:
-                match += 1
-        if match == 0:
-            text = f'Данной коробки <code>"{barcodes_from_img}"</code> не найдено в накладной'
-            await check_file_exist(file, text, bot, message)
+            if len(barcodes_from_img) > 0:  # Если нашлись штрихкода в картинке
+                for bcode in barcodes_from_img:
+                    if bcode not in [b.boxnumber for b in result]:  # Если найденно шк нет в уже принятых коробках
+                        barcodes.append(bcode)
+                    else:
+                        text = texts.error_head + f'Вы уже отправляли данную коробку\n"<code>{str(bcode).strip()}</code>"'
+                        await bot.send_message(message.chat.id, text)
+                        log.debug(f'Вы уже отправляли данную коробку "{bcode}"')
+            else:
+                await check_file_exist(file, 'На данном фото <b><u>не найдено</u></b> штрихкодов', bot, message)
 
-        if os.path.exists(file):
-            await asyncio.sleep(0.20)
-            os.remove(file)
-    except TypeError:
-        logger.debug(f'TypeError: {file}')
-    except FileNotFoundError:
-        log.debug(f'Файл не найден "{file}"')
-    except PermissionError:
-        log.debug(f'Файл занят другим процессом "{file}"')
+            match = 0
+            for bcode in barcodes_from_img:  # Проверяю найденный шк с коробками из накладной
+                if bcode in boxsnumbers:
+                    match += 1
+            if match == 0:
+                text = f'Данной коробки <code>"{barcodes_from_img}"</code> не найдено в накладной'
+                await check_file_exist(file, text, bot, message)
 
-    if len(barcodes) == 0:
-        await state.update_data(busy=False)
-        return
-    barcodes = list(set(barcodes))
-    log.debug(f'Нашел коробки "{barcodes}"')
-    new_boxs = namedtuple('Box', 'name capacity boxnumber count_bottles amarks scaned')
+            if os.path.exists(file):
+                await asyncio.sleep(0.20)
+                os.remove(file)
+        except TypeError:
+            logger.debug(f'TypeError: {file}')
+        except FileNotFoundError:
+            log.debug(f'Файл не найден "{file}"')
+        except PermissionError:
+            log.debug(f'Файл занят другим процессом "{file}"')
 
-    for box in boxs:
-        match = 0
-        for barcode in barcodes:
-            if barcode == box.boxnumber:
-                match += 1
-                log.info(f'Принял коробку {barcode}')
-                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, True))
-                barcodes.remove(barcode)
+        if len(barcodes) == 0:
+            await state.update_data(busy=False)
+            return
+        barcodes = list(set(barcodes))
+        log.debug(f'Нашел коробки "{barcodes}"')
+        new_boxs = namedtuple('Box', 'name capacity boxnumber count_bottles amarks scaned')
 
-        if match == 0:
-            if box.boxnumber not in [b.boxnumber for b in result]:
-                result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, False))
+        for box in boxs:
+            match = 0
+            for barcode in barcodes:
+                if barcode == box.boxnumber:
+                    match += 1
+                    log.info(f'Принял коробку {barcode}')
+                    result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, True))
+                    barcodes.remove(barcode)
 
-    await state.update_data(busy=False, boxs=result)
-    state_info = await state.get_data()
-    box_scaned = [box for box in result if box.scaned]
-    log.info(f'Принято {len(box_scaned)}/{len(result)}')
-    await bot.send_message(message.chat.id, texts.accept_text(result), reply_markup=getKeyboard_accept_ttn(state_info))
+            if match == 0:
+                if box.boxnumber not in [b.boxnumber for b in result]:
+                    result.append(new_boxs(box.name, box.capacity, box.boxnumber, box.count_bottles, box.amarks, False))
+
+        await state.update_data(busy=False, boxs=result)
+        state_info = await state.get_data()
+        box_scaned = [box for box in result if box.scaned]
+        log.info(f'Принято {len(box_scaned)}/{len(result)}')
+        await bot.send_message(message.chat.id, texts.accept_text(result), reply_markup=getKeyboard_accept_ttn(state_info))
 
 
 async def send_accept_ttn(call: CallbackQuery, state: FSMContext, callback_data: SendAcceptTTN):

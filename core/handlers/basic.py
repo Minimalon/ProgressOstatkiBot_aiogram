@@ -1,5 +1,6 @@
 import re
 from aiogram import Bot
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ReplyKeyboardRemove, CallbackQuery
 from loguru import logger
 from core.database import botDB
@@ -46,6 +47,10 @@ async def registration(message: Message, bot: Bot):
 
 async def my_id(message: Message):
     await message.answer(f'Ваш ID: <code>{message.chat.id}</code>')
+    await message.answer(texts.menu, reply_markup=inline.getKeyboard_startMenu())
+
+async def clear(message: Message, state: FSMContext):
+    await state.update_data(bottles=None)
 
 
 

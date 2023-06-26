@@ -37,3 +37,9 @@ class ChangePrice(StatesGroup):
     barcode = State()
     price = State()
     final = State()
+class Inventory(StatesGroup):
+    enter_cashNumber = State()
+    choose_entity = State()
+    inn = State()
+    menu = State()
+    scaning = State()

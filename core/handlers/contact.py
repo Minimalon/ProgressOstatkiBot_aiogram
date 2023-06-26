@@ -21,6 +21,7 @@ async def get_true_contact(message: Message, bot: Bot):
         await message.answer(texts.menu, reply_markup=getKeyboard_startMenu())
         logger.bind(chat_id=chat_id).success('Успешная регистрация')
     else:
+        await bot.send_message(chat_id, texts.succes_registration, reply_markup=ReplyKeyboardRemove())
         await message.answer(texts.menu, reply_markup=getKeyboard_startMenu())
 
 
