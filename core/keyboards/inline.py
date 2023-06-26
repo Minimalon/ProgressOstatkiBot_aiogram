@@ -11,7 +11,7 @@ def getKeyboard_startMenu():
     kb.button(text="Остатки", callback_data='ostatki')
     kb.button(text="Накладные", callback_data='WayBills')
     kb.button(text="Товары", callback_data='goods')
-    kb.button(text="Инвентаризация", callback_data='inventory')
+    # kb.button(text="Инвентаризация", callback_data='inventory')
     kb.adjust(2, repeat=True)
     return kb.as_markup()
 
