@@ -106,10 +106,8 @@ def getKeyboard_menu_ttns():
     return kb.as_markup()
 
 
-def getKeyboard_menu_ttns_who_in_blacklist(cash):
+def getKeyboard_menu_ttns_who_in_blacklist():
     kb = InlineKeyboardBuilder()
-    if cash in config.whitelist:
-        kb.button(text="Подтвердить накладные", callback_data='accept_ttns')
     kb.button(text="Список", callback_data='list_ttns')
     kb.adjust(1, repeat=True)
     return kb.as_markup()
