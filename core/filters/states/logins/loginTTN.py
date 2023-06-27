@@ -87,7 +87,7 @@ async def enter_inn(call: CallbackQuery, state: FSMContext, callback_data: Choos
             if data['cash'] in config.white_cash_list:
                 await call.message.answer(texts.WayBills, reply_markup=getKeyboard_menu_ttns())
             else:
-                await call.message.answer(texts.WayBills_blacklist, reply_markup=getKeyboard_menu_ttns_who_in_blacklist())
+                await call.message.answer(texts.WayBills_blacklist, reply_markup=getKeyboard_menu_ttns_who_in_blacklist(data['cash']))
         else:
             await call.message.answer(texts.WayBills, reply_markup=getKeyboard_menu_ttns())
     else:
@@ -106,7 +106,7 @@ async def menu_ttns(message: Message, state: FSMContext):
             if data['cash'] in config.white_cash_list:
                 await message.answer(texts.WayBills, reply_markup=getKeyboard_menu_ttns())
             else:
-                await message.answer(texts.WayBills_blacklist, reply_markup=getKeyboard_menu_ttns_who_in_blacklist())
+                await message.answer(texts.WayBills_blacklist, reply_markup=getKeyboard_menu_ttns_who_in_blacklist(data['cash']))
         else:
             await message.answer(texts.WayBills, reply_markup=getKeyboard_menu_ttns())
     else:

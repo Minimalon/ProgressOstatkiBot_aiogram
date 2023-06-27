@@ -46,7 +46,7 @@ async def menu_back_ttns(call: CallbackQuery, state: FSMContext):
         if data['cash'] in config.white_cash_list:
             await call.message.answer(texts.WayBills, reply_markup=getKeyboard_menu_ttns())
         else:
-            await call.message.answer(texts.WayBills_blacklist, reply_markup=getKeyboard_menu_ttns_who_in_blacklist())
+            await call.message.answer(texts.WayBills_blacklist, reply_markup=getKeyboard_menu_ttns_who_in_blacklist(data['cash']))
     else:
         await call.message.answer(texts.WayBills, reply_markup=getKeyboard_menu_ttns())
 

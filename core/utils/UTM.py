@@ -57,7 +57,7 @@ class UTM:
             return [url.text for url in BeautifulSoup(response.text, 'xml').findAll("url")]
 
     async def get_Waybill_and_FORM2REGINFO(self):
-        """Возвращает [id ссылки на который заканчивается FORM2REGINFO, id ссылки на который заканчивается Waybill_v4, номер ттн егаис, имя поставщика, Дата накладной, номер накладной]"""
+        """Возвращает namedtuple('TTNS', 'id_f2r id_wb ttn_egais shipper_name date wbnumber')"""
         TTNS = namedtuple('TTNS', 'id_f2r id_wb ttn_egais shipper_name date wbnumber')
         urls_form = await self.get_all_opt_URLS_text_by_docType("FORM2REGINFO")
         urls_wb = await self.get_all_opt_URLS_text_by_docType("WayBill_v4")
@@ -80,6 +80,8 @@ class UTM:
             TTN = ET.fromstring(req).find('*/*/*/{http://fsrar.ru/WEGAIS/TTNInformF2Reg}WBRegId').text
             WBNUMBER = ET.fromstring(req).find('*/*/*/{http://fsrar.ru/WEGAIS/TTNInformF2Reg}WBNUMBER').text
             SHIPPER_NAME = ET.fromstring(req).find('*/*/*/{http://fsrar.ru/WEGAIS/TTNInformF2Reg}Shipper/*/{http://fsrar.ru/WEGAIS/ClientRef_v2}ShortName').text
+            # if "саман" in SHIPPER_NAME.lower():
+            #     continue
             date = ET.fromstring(req).find('*/*/*/{http://fsrar.ru/WEGAIS/TTNInformF2Reg}WBDate').text
             for url_wb in urls_wb:
                 async with httpx.AsyncClient() as client:
@@ -471,5 +473,5 @@ class UTM:
 
 if __name__ == "__main__":
     utm = UTM(port="8082", ip="10.8.23.14")
-    a =asyncio.run(utm.get_Waybill_and_FORM2REGINFO())
+    a = asyncio.run(utm.get_Waybill_and_FORM2REGINFO())
     print(a)

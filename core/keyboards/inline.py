@@ -2,6 +2,7 @@ from collections import namedtuple
 
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+import config
 from core.utils.callbackdata import *
 from loguru import logger
 
@@ -21,17 +22,22 @@ def getKeyboard_inventory():
     kb.button(text="Начать сканирование", callback_data='start_inventory')
     kb.adjust(1, repeat=True)
     return kb.as_markup()
+
+
 def getKeyboard_end_inventory():
     kb = InlineKeyboardBuilder()
     kb.button(text="Подробная информация о бутылках", callback_data='detailed_invetory')
     kb.button(text="Завершить сканирование", callback_data='end_invetory')
     kb.adjust(1, repeat=True)
     return kb.as_markup()
+
+
 def getKeyboard_detailed_inventory():
     kb = InlineKeyboardBuilder()
     kb.button(text="Завершить сканирование", callback_data='end_invetory')
     kb.adjust(1, repeat=True)
     return kb.as_markup()
+
 
 def getKeyboard_ostatki(inn, fsrar):
     kb = InlineKeyboardBuilder()
@@ -40,12 +46,14 @@ def getKeyboard_ostatki(inn, fsrar):
     kb.adjust(1, repeat=True)
     return kb.as_markup()
 
+
 def getKeyboard_goods():
     kb = InlineKeyboardBuilder()
     kb.button(text="Создать штрихкод", callback_data='new_barcode')
     kb.button(text="Изменить цену", callback_data='new_price_barcode')
     kb.adjust(1, repeat=True)
     return kb.as_markup()
+
 
 def getKeyboard_select_dcode():
     kb = InlineKeyboardBuilder()
@@ -57,6 +65,7 @@ def getKeyboard_select_dcode():
     kb.adjust(1, repeat=True)
     return kb.as_markup()
 
+
 def getKeyboard_select_measure_alcohol():
     kb = InlineKeyboardBuilder()
     kb.button(text="Поштучный", callback_data=SelectMeasure(measure='1', op_mode='192', tmctype='1'))
@@ -64,12 +73,14 @@ def getKeyboard_select_measure_alcohol():
     kb.adjust(1, repeat=True)
     return kb.as_markup()
 
+
 def getKeyboard_select_measure_beer():
     kb = InlineKeyboardBuilder()
     kb.button(text="Поштучный", callback_data=SelectMeasure(measure='1', op_mode='64', tmctype='0'))
     kb.button(text="Розлив", callback_data=SelectMeasure(measure='2', op_mode='64', tmctype='0'))
     kb.adjust(1, repeat=True)
     return kb.as_markup()
+
 
 def getKeyboard_select_measure_products():
     kb = InlineKeyboardBuilder()
@@ -94,8 +105,11 @@ def getKeyboard_menu_ttns():
     kb.adjust(1, repeat=True)
     return kb.as_markup()
 
-def getKeyboard_menu_ttns_who_in_blacklist():
+
+def getKeyboard_menu_ttns_who_in_blacklist(cash):
     kb = InlineKeyboardBuilder()
+    if cash in config.whitelist:
+        kb.button(text="Подтвердить накладные", callback_data='accept_ttns')
     kb.button(text="Список", callback_data='list_ttns')
     kb.adjust(1, repeat=True)
     return kb.as_markup()
@@ -142,6 +156,7 @@ def getKeyboard_entity(cash_info, UTM_8082, UTM_18082):
         kb.button(text=ip_name, callback_data=ChooseEntity(inn=ip_inn, fsrar=ip_fsrar, port='18082', ip=cash_info.ip))
     kb.adjust(1, repeat=True)
     return kb.as_markup()
+
 
 def getKeyboard_entity_offline(cash_info):
     kb = InlineKeyboardBuilder()
