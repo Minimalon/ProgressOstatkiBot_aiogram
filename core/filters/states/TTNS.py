@@ -449,8 +449,9 @@ async def send_accept_ttn(call: CallbackQuery, state: FSMContext, callback_data:
     utm = UTM(ip=state_info.get('ip'), port=state_info.get('port'))
     boxs = await get_boxs(state_info.get('boxs'))
     cash = state_info.get('cash').split('-')[1]
-    logger.info('accept')
+    log.info('accept')
     response = await utm.send_WayBillv4(callback_data.ttn)
+    log.info(f'response = {response.status_code}')
     if response.status_code == 200:
         await utm.add_to_whitelist(url_wb, boxs, cash)
         async with httpx.AsyncClient() as client:
