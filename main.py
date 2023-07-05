@@ -25,6 +25,7 @@ async def start():
     logger.add(os.path.join(config.dir_path, 'logs', 'debug.log'), format="{time} | {level} | {name}:{function}:{line} | {message} | {extra}", )
 
     bot = Bot(token=config.token, parse_mode='HTML')
+    await bot.send_message(5263751490, 'Я Запустился!')
     await get_commands(bot)
     await get_admin_commands(bot)
     storage = RedisStorage.from_url(config.redisStorage)
@@ -121,6 +122,7 @@ async def start():
     except Exception as e:
         logger.exception(e)
     finally:
+        await bot.send_message(5263751490, 'Я Остановился!!!!')
         await bot.session.close()
 
 
