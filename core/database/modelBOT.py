@@ -16,7 +16,7 @@ class Clients(Base):
     last_name = Column(String(50))
     user_id = Column(String(50), nullable=False, primary_key=True)
     chat_id = Column(String(50), nullable=False)
-    cash = Column(String(250))
+    cash = Column(String(10000))
     admin = Column(Boolean, default=False)
     whitelist_admin = Column(Boolean, default=False)
 
