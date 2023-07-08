@@ -2,7 +2,7 @@ from aiogram import Bot
 from aiogram.types import Message, ReplyKeyboardRemove
 from loguru import logger
 
-from core.database import botDB
+from core.database import query_BOT
 from core.utils import texts
 from core.keyboards.reply import getKeyboard_registration
 from core.keyboards.inline import getKeyboard_startMenu
@@ -14,9 +14,9 @@ async def get_true_contact(message: Message, bot: Bot):
     first_name = message.contact.first_name
     last_name = message.contact.last_name
     user_id = message.contact.user_id
-    q = await botDB.get_client_info(chat_id=chat_id)
+    q = await query_BOT.get_client_info(chat_id=chat_id)
     if not q:
-        await botDB.update_client_info(phone_number=phone, chat_id=chat_id, first_name=first_name, last_name=last_name, user_id=user_id)
+        await query_BOT.update_client_info(phone_number=phone, chat_id=chat_id, first_name=first_name, last_name=last_name, user_id=user_id)
         await bot.send_message(chat_id, texts.succes_registration, reply_markup=ReplyKeyboardRemove())
         await message.answer(texts.menu, reply_markup=getKeyboard_startMenu())
         logger.bind(chat_id=chat_id).success('Успешная регистрация')

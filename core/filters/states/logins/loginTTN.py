@@ -7,8 +7,8 @@ from aiogram.fsm.context import FSMContext
 from loguru import logger
 
 import config
-from core.database import progressDB
-from core.database.botDB import get_client_info, check_cashNumber, add_client_cashNumber
+from core.database import query_PROGRESS
+from core.database.query_BOT import get_client_info, check_cashNumber, add_client_cashNumber, check_inn_in_blacklist, check_cash_in_whitelist
 from core.keyboards.inline import getKeyboard_startMenu, getKeyboard_entity, getKeyboard_tehpod_url, getKeyboard_menu_ttns, \
     getKeyboard_menu_ttns_who_in_blacklist
 from core.utils import texts
@@ -20,8 +20,8 @@ from core.utils.states import StateTTNs
 async def check_cash_number(message: Message):
     log = logger.bind(text=message.text)
     try:
-        cash_info = progressDB.get_cash_info(message.text)
-        count_cashes = progressDB.check_cash_info(message.text)
+        cash_info = query_PROGRESS.get_cash_info(message.text)
+        count_cashes = query_PROGRESS.check_cash_info(message.text)
         if not message.text.isdigit():
             log.error('Состоит не только из цифр')
             await message.answer(texts.error_cashNumber)
@@ -83,8 +83,8 @@ async def enter_inn(call: CallbackQuery, state: FSMContext, callback_data: Choos
     # Если пользователь уже логинился с этим номером компа раньше, то сразу выдаю меню
     if await check_cashNumber(str(call.message.chat.id), data['cash']):
         await state.set_state(StateTTNs.menu)
-        if inn in config.black_inn_list:
-            if data['cash'] in config.white_cash_list:
+        if await check_inn_in_blacklist(inn):
+            if await check_cash_in_whitelist(data['cash']):
                 await call.message.answer(texts.WayBills, reply_markup=getKeyboard_menu_ttns())
             else:
                 await call.message.answer(texts.WayBills_blacklist, reply_markup=getKeyboard_menu_ttns_who_in_blacklist())
@@ -102,8 +102,8 @@ async def menu_ttns(message: Message, state: FSMContext):
     if inn == message.text:
         await add_client_cashNumber(chat_id=message.chat.id, cash=data['cash'])
         await state.set_state(StateTTNs.menu)
-        if data['inn'] in config.black_inn_list:
-            if data['cash'] in config.white_cash_list:
+        if await check_inn_in_blacklist(inn):
+            if await check_cash_in_whitelist(data['cash']):
                 await message.answer(texts.WayBills, reply_markup=getKeyboard_menu_ttns())
             else:
                 await message.answer(texts.WayBills_blacklist, reply_markup=getKeyboard_menu_ttns_who_in_blacklist())

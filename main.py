@@ -14,7 +14,7 @@ from core.filters.iscontact import IsTrueContact
 from core.utils.callbackdata import *
 from core.filters.states.ostatki import *
 from core.utils.states import *
-from core.utils.commands import get_commands, get_admin_commands
+from core.utils.commands import get_commands, get_superadmin_commands, whitelist_admin_commands
 from core.filters.states.logins import loginGoods, loginTTN, loginOstatki, loginInventory
 
 
@@ -27,7 +27,8 @@ async def start():
     bot = Bot(token=config.token, parse_mode='HTML')
     await bot.send_message(5263751490, 'Я Запустился!')
     await get_commands(bot)
-    await get_admin_commands(bot)
+    await get_superadmin_commands(bot)
+    await whitelist_admin_commands(bot)
     storage = RedisStorage.from_url(config.redisStorage)
     dp = Dispatcher(storage=storage)
 
@@ -39,6 +40,13 @@ async def start():
     dp.message.register(basic.get_start, Command(commands=['start']))
     dp.message.register(basic.my_id, Command(commands=['id']))
     dp.message.register(basic.clear, Command(commands=['clear']))
+
+    # Команды для админов белого списка
+    dp.message.register(basic.start_add_cash_in_whitelist, Command(commands=['add_comp']))
+
+
+    # Добавление компа в белый список для приёма ТТН
+    dp.message.register(basic.end_add_cash_in_whitelist, AddCashWhitelist.enter_cashNumber)
 
     # CONTACT REGISTRATION
     dp.message.register(contact.get_true_contact, F.contact, IsTrueContact())

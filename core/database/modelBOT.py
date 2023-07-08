@@ -18,6 +18,8 @@ class Clients(Base):
     chat_id = Column(String(50), nullable=False)
     cash = Column(String(250))
     admin = Column(Boolean, default=False)
+    whitelist_admin = Column(Boolean, default=False)
+
 
 class Barcodes(Base):
     __tablename__ = 'barcodes'
@@ -33,6 +35,19 @@ class Barcodes(Base):
     status = Column(String(50), nullable=False)
     comment = Column(String(200))
     succes = Column(Boolean(), default=False)
+
+
+class Whitelist(Base):
+    __tablename__ = 'cash_whitelist'
+    id = Column(BigInteger, nullable=False, primary_key=True)
+    cash_number = Column(String(50), nullable=False)
+    inn = Column(String(50), nullable=False)
+
+
+class BlackInnList(Base):
+    __tablename__ = 'black_inn_list'
+    id = Column(BigInteger, nullable=False, primary_key=True)
+    inn = Column(String(50), nullable=False)
 
 
 Base.metadata.create_all(engine)

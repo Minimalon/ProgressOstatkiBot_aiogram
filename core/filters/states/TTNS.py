@@ -17,8 +17,8 @@ import paramiko
 from bs4 import BeautifulSoup
 
 import config
-from core.database import progressDB
-from core.database.botDB import add_client_cashNumber, get_client_info
+from core.database import query_PROGRESS
+from core.database.query_BOT import add_client_cashNumber, get_client_info, check_cash_in_whitelist, check_inn_in_blacklist
 from core.keyboards.inline import *
 from core.utils import texts
 from core.utils.states import StateTTNs
@@ -42,8 +42,8 @@ async def menu_back_ttns(call: CallbackQuery, state: FSMContext):
     log = logger.bind(first_name=call.message.chat.first_name, chat_id=call.message.chat.id)
     data = await state.get_data()
     log.info('Нажали кнопку "Назад"')
-    if data['inn'] in config.black_inn_list:
-        if data['cash'] in config.white_cash_list:
+    if await check_inn_in_blacklist(data['inn']):
+        if await check_cash_in_whitelist(data['cash']):
             await call.message.answer(texts.WayBills, reply_markup=getKeyboard_menu_ttns())
         else:
             await call.message.answer(texts.WayBills_blacklist, reply_markup=getKeyboard_menu_ttns_who_in_blacklist())

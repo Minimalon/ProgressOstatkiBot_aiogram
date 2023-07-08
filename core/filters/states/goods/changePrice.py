@@ -9,7 +9,7 @@ from aiogram.types import Message, CallbackQuery
 from loguru import logger
 
 import config
-from core.database.botDB import create_barcode
+from core.database.query_BOT import create_barcode
 from core.filters.states.TTNS import read_barcodes_from_image, check_file_exist
 from core.keyboards.inline import getKeyboard_tehpod_url
 from core.utils import texts

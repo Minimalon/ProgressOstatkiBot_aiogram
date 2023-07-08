@@ -9,7 +9,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
 import config
-from core.database.botDB import create_barcode
+from core.database.query_BOT import create_barcode
 
 
 def generate_pdf(cash_number):

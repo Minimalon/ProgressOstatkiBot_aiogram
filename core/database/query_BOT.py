@@ -1,5 +1,5 @@
 from loguru import logger
-from sqlalchemy import select, update
+from sqlalchemy import select, update, insert
 from sqlalchemy.orm import *
 from sqlalchemy.exc import OperationalError
 
@@ -93,3 +93,28 @@ def create_barcode(**kwargs):
     with Session() as session:
         session.add(Barcodes(**kwargs))
         session.commit()
+
+
+async def check_cash_in_whitelist(cash_number: str):
+    """Проверка номера компьютера в белом списке для приёма ТТН"""
+    with Session() as session:
+        return session.execute(select(Whitelist).where(Whitelist.cash_number == cash_number)).first()
+
+
+async def add_cash_in_whitelist(cash_number: str, inn: str):
+    """Добавляет номер компьютера в белый список для приёма ТТН"""
+    with Session() as session:
+        session.execute(insert(Whitelist).values(cash_number=cash_number, inn=inn))
+        session.commit()
+
+
+async def check_inn_in_blacklist(inn: str):
+    """Проверка ИНН в черном списке для приёма ТТН"""
+    with Session() as session:
+        return session.execute(select(BlackInnList).where(BlackInnList.inn == inn)).first()
+
+
+async def get_whitelist_admins():
+    """Забираю админом которые могут добавлять компы в белый список"""
+    with Session() as session:
+        return session.execute(select(Clients).where(Clients.whitelist_admin)).scalars().all()

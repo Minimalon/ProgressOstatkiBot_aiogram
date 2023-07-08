@@ -2,7 +2,7 @@ import asyncio
 import os
 from datetime import datetime as dt
 import config
-from core.database.progressDB import get_cash_info
+from core.database.query_PROGRESS import get_cash_info
 
 
 async def get_last_file(inn: str, fsrar: str):

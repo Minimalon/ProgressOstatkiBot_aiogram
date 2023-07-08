@@ -26,6 +26,7 @@ class Goods(StatesGroup):
     inn = State()
     menu = State()
 
+
 class CreateBarcode(StatesGroup):
     dcode = State()
     measure = State()
@@ -33,13 +34,19 @@ class CreateBarcode(StatesGroup):
     price = State()
     name = State()
     final = State()
+
+
 class ChangePrice(StatesGroup):
     barcode = State()
     price = State()
     final = State()
+
+
 class Inventory(StatesGroup):
     enter_cashNumber = State()
     choose_entity = State()
     inn = State()
     menu = State()
     scaning = State()
+class AddCashWhitelist(StatesGroup):
+    enter_cashNumber = State()

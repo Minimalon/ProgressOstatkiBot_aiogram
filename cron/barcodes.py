@@ -4,9 +4,9 @@ import re
 from sqlalchemy import text
 from sqlalchemy.orm import *
 
-from core.database.botDB import get_barcodes_for_add, update_status_barcode, get_unique_cashnumbers_from_barcodes, get_barcodes_for_price
+from core.database.query_BOT import get_barcodes_for_add, update_status_barcode, get_unique_cashnumbers_from_barcodes, get_barcodes_for_price
 from core.database.modelBOT import *
-from core.database.progressDB import get_cash_info
+from core.database.query_PROGRESS import get_cash_info
 
 
 async def add_barcodes_in_cash(ip, cash_number):

@@ -2,12 +2,12 @@ import re
 from sqlalchemy.exc import OperationalError
 
 from aiogram import Bot
-from aiogram.types import CallbackQuery, Message, FSInputFile
+from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
 from loguru import logger
 
-from core.database import progressDB
-from core.database.botDB import get_client_info, add_client_cashNumber, check_cashNumber
+from core.database import query_PROGRESS
+from core.database.query_BOT import get_client_info, add_client_cashNumber, check_cashNumber
 from core.keyboards.inline import getKeyboard_startMenu, getKeyboard_entity, getKeyboard_tehpod_url, getKeyboard_goods
 from core.utils import texts
 from core.utils.UTM import UTM
@@ -17,8 +17,8 @@ from core.utils.states import Goods
 async def check_cash_number(message: Message):
     log = logger.bind(text=message.text)
     try:
-        cash_info = progressDB.get_cash_info(message.text)
-        count_cashes = progressDB.check_cash_info(message.text)
+        cash_info = query_PROGRESS.get_cash_info(message.text)
+        count_cashes = query_PROGRESS.check_cash_info(message.text)
         if not message.text.isdigit():
             log.error('Состоит не только из цифр')
             await message.answer(texts.error_cashNumber)
