@@ -101,6 +101,11 @@ async def check_cash_in_whitelist(cash_number: str):
         return session.execute(select(Whitelist).where(Whitelist.cash_number == cash_number)).first()
 
 
+async def get_cash_in_whitelist():
+    """Отадёт номера компьютеров белого списка для приёма ТТН"""
+    with Session() as session:
+        return session.execute(select(Whitelist)).scalars().all()
+
 async def add_cash_in_whitelist(cash_number: str, inn: str):
     """Добавляет номер компьютера в белый список для приёма ТТН"""
     with Session() as session:

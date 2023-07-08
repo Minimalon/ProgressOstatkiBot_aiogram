@@ -43,6 +43,7 @@ async def start():
 
     # Команды для админов белого списка
     dp.message.register(basic.start_add_cash_in_whitelist, Command(commands=['add_comp']))
+    dp.message.register(basic.send_cashs_in_whitelist, Command(commands=['get_comps']))
 
 
     # Добавление компа в белый список для приёма ТТН

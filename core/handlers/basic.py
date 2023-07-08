@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ReplyKeyboardRemove, CallbackQuery
 from loguru import logger
 from core.database import query_BOT
-from core.database.query_BOT import add_cash_in_whitelist, get_client_info
+from core.database.query_BOT import add_cash_in_whitelist, get_client_info, get_cash_in_whitelist
 from core.filters.states.logins.loginTTN import check_cash_number
 from core.keyboards import reply
 from core.keyboards import inline
@@ -81,6 +81,16 @@ async def end_add_cash_in_whitelist(message: Message, state: FSMContext):
     await message.answer(f'Компьютер <b>{message.text}</b> успешно добавлен в белый список')
     await state.clear()
     log.success(f'Комп добавлен в белый список "{cash_info.name}"')
+
+async def send_cashs_in_whitelist(message: Message):
+    log = logger.bind(name=message.chat.first_name, chat_id=message.chat.id)
+    log.info(f'Нажали команду "{message.text}"')
+    client_info = await get_client_info(chat_id=message.chat.id)
+    if not client_info.whitelist_admin:
+        await message.answer('У вас нет прав доступа к данной команде')
+    else:
+        cashs = '\n'.join([i.cash_number for i in await get_cash_in_whitelist()])
+        await message.answer(cashs)
 
 
 
