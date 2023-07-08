@@ -8,7 +8,7 @@ from core.database.query_BOT import add_cash_in_whitelist, get_client_info, get_
 from core.filters.states.logins.loginTTN import check_cash_number
 from core.keyboards import reply
 from core.keyboards import inline
-from core.keyboards.inline import getKeyboard_startMenu
+from core.keyboards.inline import getKeyboard_startMenu, getKeyboard_delete_cash_from_whitelist
 from core.utils import texts
 from core.utils.states import AddCashWhitelist
 
@@ -92,7 +92,14 @@ async def send_cashs_in_whitelist(message: Message):
         cashs = '\n'.join([i.cash_number.split('-')[1] for i in await get_cash_in_whitelist()])
         await message.answer(cashs)
 
-
+async def start_delete_cash_from_whitelist(message: Message):
+    log = logger.bind(name=message.chat.first_name, chat_id=message.chat.id)
+    log.info(f'Нажали команду "{message.text}"')
+    client_info = await get_client_info(chat_id=message.chat.id)
+    if not client_info.whitelist_admin:
+        await message.answer('У вас нет прав доступа к данной команде')
+    else:
+        await message.answer('Выберите компьютер для удаления из белого списка', reply_markup=await getKeyboard_delete_cash_from_whitelist())
 
 
 

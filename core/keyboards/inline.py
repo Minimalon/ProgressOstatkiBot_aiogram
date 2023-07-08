@@ -3,6 +3,7 @@ from collections import namedtuple
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import config
+from core.database.query_BOT import get_cash_in_whitelist
 from core.utils.callbackdata import *
 from loguru import logger
 
@@ -248,4 +249,11 @@ def getKeyboard_info_ttn():
     kb = InlineKeyboardBuilder()
     kb.button(text=f'⬅️ Назад', callback_data='menu_ttns')
     kb.adjust(1, repeat=True)
+    return kb.as_markup()
+
+async def getKeyboard_delete_cash_from_whitelist():
+    kb = InlineKeyboardBuilder()
+    for cash in await get_cash_in_whitelist():
+        kb.button(text=f'{cash.cash_number.split("-")[1]}', callback_data=DeleteCashFromWhitelist(cash=cash.cash_number))
+        kb.adjust(1, repeat=True)
     return kb.as_markup()

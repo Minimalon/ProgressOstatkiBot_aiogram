@@ -1,5 +1,5 @@
 from loguru import logger
-from sqlalchemy import select, update, insert
+from sqlalchemy import select, update, insert, delete
 from sqlalchemy.orm import *
 from sqlalchemy.exc import OperationalError
 
@@ -110,6 +110,11 @@ async def add_cash_in_whitelist(cash_number: str, inn: str):
     """Добавляет номер компьютера в белый список для приёма ТТН"""
     with Session() as session:
         session.execute(insert(Whitelist).values(cash_number=cash_number, inn=inn))
+        session.commit()
+async def delete_cash_from_whitelist(cash_number: str):
+    """Удалить номер компьютера из белого списка приёма ТТН"""
+    with Session() as session:
+        session.execute(delete(Whitelist).where(Whitelist.cash_number == cash_number))
         session.commit()
 
 

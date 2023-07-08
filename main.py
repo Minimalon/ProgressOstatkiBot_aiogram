@@ -7,7 +7,7 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
 from aiogram.fsm.storage.redis import RedisStorage
 
-from core.handlers import basic, contact
+from core.handlers import basic, contact, callback
 from core.filters.states import ostatki, TTNS, inventory
 from core.filters.states.goods import createBarcode, changePrice
 from core.filters.iscontact import IsTrueContact
@@ -44,11 +44,13 @@ async def start():
     # Команды для админов белого списка
     dp.message.register(basic.start_add_cash_in_whitelist, Command(commands=['add_comp']))
     dp.message.register(basic.send_cashs_in_whitelist, Command(commands=['get_comps']))
+    dp.message.register(basic.start_delete_cash_from_whitelist, Command(commands=['del_comp']))
 
 
     # Добавление компа в белый список для приёма ТТН
     dp.message.register(basic.end_add_cash_in_whitelist, AddCashWhitelist.enter_cashNumber)
-
+    # Удалить комп из белого списка
+    dp.callback_query.register(callback.delete_from_whitelist, DeleteCashFromWhitelist.filter())
     # CONTACT REGISTRATION
     dp.message.register(contact.get_true_contact, F.contact, IsTrueContact())
     dp.message.register(contact.get_fake_contact, F.contact)

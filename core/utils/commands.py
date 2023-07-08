@@ -47,6 +47,10 @@ async def whitelist_admin_commands(bot: Bot):
             command='/get_comps',
             description='Список компьютеров которые есть в белом списке'
         ),
+        BotCommand(
+            command='/del_comp',
+            description='Удалить компьютер из белого списка'
+        ),
     ]
     w_admins = await get_whitelist_admins()
     for admin in w_admins:

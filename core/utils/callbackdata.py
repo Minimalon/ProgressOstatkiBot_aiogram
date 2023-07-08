@@ -51,3 +51,5 @@ class SelectMeasure(CallbackData, prefix='measure'):
     measure: int
     op_mode: int
     tmctype: int
+class DeleteCashFromWhitelist(CallbackData, prefix='del_from_whitelist'):
+    cash: str
