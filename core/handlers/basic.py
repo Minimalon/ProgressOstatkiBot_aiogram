@@ -89,7 +89,7 @@ async def send_cashs_in_whitelist(message: Message):
     if not client_info.whitelist_admin:
         await message.answer('У вас нет прав доступа к данной команде')
     else:
-        cashs = '\n'.join([i.cash_number for i in await get_cash_in_whitelist()])
+        cashs = '\n'.join([i.cash_number.split('-')[1] for i in await get_cash_in_whitelist()])
         await message.answer(cashs)
 
 
