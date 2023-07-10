@@ -442,6 +442,8 @@ async def document_accept_ttn(message: Message, state: FSMContext, bot: Bot):
 
 async def send_accept_ttn(call: CallbackQuery, state: FSMContext, callback_data: SendAcceptTTN):
     log = logger.bind(first_name=call.message.chat.first_name, chat_id=call.message.chat.id)
+    log.info('Нажали "Принять накладную"')
+    await call.message.edit_text('Идёт процесс потдверждения накладной. Загрузка займет не дольше 1-ой минуты')
     state_info = await state.get_data()
     url = f'http://{state_info.get("ip")}:{state_info.get("port")}/opt/out'
     url_f2r = f'{url}/FORM2REGINFO/{state_info.get("id_f2r")}'
@@ -449,7 +451,7 @@ async def send_accept_ttn(call: CallbackQuery, state: FSMContext, callback_data:
     utm = UTM(ip=state_info.get('ip'), port=state_info.get('port'))
     boxs = await get_boxs(state_info.get('boxs'))
     cash = state_info.get('cash').split('-')[1]
-    log.info('accept')
+
     response = await utm.send_WayBillv4(callback_data.ttn)
     log.info(f'response = {response.status_code}')
     if response.status_code == 200:
