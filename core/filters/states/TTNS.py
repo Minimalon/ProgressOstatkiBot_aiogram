@@ -443,30 +443,34 @@ async def document_accept_ttn(message: Message, state: FSMContext, bot: Bot):
 async def send_accept_ttn(call: CallbackQuery, state: FSMContext, callback_data: SendAcceptTTN):
     log = logger.bind(first_name=call.message.chat.first_name, chat_id=call.message.chat.id)
     log.info('Нажали "Принять накладную"')
-    await call.message.edit_text('Идёт процесс потдверждения накладной. Загрузка займет не дольше 1-ой минуты')
-    state_info = await state.get_data()
-    url = f'http://{state_info.get("ip")}:{state_info.get("port")}/opt/out'
-    url_f2r = f'{url}/FORM2REGINFO/{state_info.get("id_f2r")}'
-    url_wb = f'{url}/WayBill_v4/{state_info.get("id_wb")}'
-    utm = UTM(ip=state_info.get('ip'), port=state_info.get('port'))
-    boxs = await get_boxs(state_info.get('boxs'))
-    cash = state_info.get('cash').split('-')[1]
+    try:
+        await call.message.edit_text('Идёт процесс потдверждения накладной. Загрузка займет не дольше 1-ой минуты')
+        state_info = await state.get_data()
+        url = f'http://{state_info.get("ip")}:{state_info.get("port")}/opt/out'
+        url_f2r = f'{url}/FORM2REGINFO/{state_info.get("id_f2r")}'
+        url_wb = f'{url}/WayBill_v4/{state_info.get("id_wb")}'
+        utm = UTM(ip=state_info.get('ip'), port=state_info.get('port'))
+        boxs = await get_boxs(state_info.get('boxs'))
+        cash = state_info.get('cash').split('-')[1]
 
-    response = await utm.send_WayBillv4(callback_data.ttn)
-    log.info(f'response = {response.status_code}')
-    if response.status_code == 200:
-        await utm.add_to_whitelist(url_wb, boxs, cash)
-        async with httpx.AsyncClient() as client:
-            await client.delete(url_f2r)
-            await client.delete(url_wb)
-        log.success(f'Приняли накладную "{callback_data.ttn}"')
-        await call.message.edit_text("✅Акт потдверждения накладной успешно отправлен\n"
-                                     "Накладная будет принята в течении 5 минут")
-        await state.clear()
-    else:
-        log.error(f'Накладная не принята "{callback_data.ttn}". Код ошибки "{response.status_code}"')
-        text = texts.error_head + f'Попробуйте еще раз подтвердить накладную. Код ошибки "{response.status_code}"'
-        await call.message.answer(text, reply_markup=getKeyboard_tehpod_url())
+        response = await utm.send_WayBillv4(callback_data.ttn)
+        log.info(f'response = {response.status_code}')
+        if response.status_code == 200:
+            await utm.add_to_whitelist(url_wb, boxs, cash)
+            async with httpx.AsyncClient() as client:
+                await client.delete(url_f2r)
+                await client.delete(url_wb)
+            log.success(f'Приняли накладную "{callback_data.ttn}"')
+            await call.message.edit_text("✅Акт потдверждения накладной успешно отправлен\n"
+                                         "Накладная будет принята в течении 5 минут")
+            await state.clear()
+        else:
+            log.error(f'Накладная не принята "{callback_data.ttn}". Код ошибки "{response.status_code}"')
+            text = texts.error_head + f'Попробуйте еще раз подтвердить накладную. Код ошибки "{response.status_code}"'
+            await call.message.answer(text, reply_markup=getKeyboard_tehpod_url())
+    except Exception as e:
+        log.exception(e)
+        await call.message.edit_text(texts.error_head + e)
 
 
 async def choose_divirgence_ttn(call: CallbackQuery, state: FSMContext, bot: Bot):
@@ -481,25 +485,31 @@ async def choose_divirgence_ttn(call: CallbackQuery, state: FSMContext, bot: Bot
 
 async def send_divirgence_ttn(call: CallbackQuery, state: FSMContext):
     log = logger.bind(first_name=call.message.chat.first_name, chat_id=call.message.chat.id)
-    state_info = await state.get_data()
-    utm = UTM(ip=state_info.get('ip'), port=state_info.get('port'))
-    url = f'http://{state_info.get("ip")}:{state_info.get("port")}/opt/out'
-    url_f2r = f'{url}/FORM2REGINFO/{state_info.get("id_f2r")}'
-    url_wb = f'{url}/WayBill_v4/{state_info.get("id_wb")}'
-    ttn_egais = state_info.get('ttn_egais')
-    response = await utm.send_divirgence_ttn(url_wb, url_f2r, await get_boxs(state_info.get('boxs')), ttn_egais)
-    if response.status_code == 200:
-        await utm.add_to_whitelist(url_wb, await get_boxs(state_info.get('boxs')), state_info.get('cash').split('-')[1])
-        async with httpx.AsyncClient() as client:
-            await client.delete(url_f2r)
-            await client.delete(url_wb)
-        log.success(f'Акт расхождения успешно отправлен "{ttn_egais}"')
-        await call.message.edit_text("✅Акт расхождения успешно отправлен\n")
-        await state.clear()
-    else:
-        log.error(f'Накладная не принята "{ttn_egais}". Код ошибки "{response.status_code}"')
-        text = texts.error_head + f'Попробуйте еще раз отправить акт расхождения. Код ошибки "{response.status_code}"'
-        await call.message.answer(text, reply_markup=getKeyboard_tehpod_url())
+    log.info('Отправили акт расхождения')
+    try:
+        await call.message.edit_text("Идёт процесс отправки накладной. Загрузка займёт не дольше 1-ой минуты")
+        state_info = await state.get_data()
+        utm = UTM(ip=state_info.get('ip'), port=state_info.get('port'))
+        url = f'http://{state_info.get("ip")}:{state_info.get("port")}/opt/out'
+        url_f2r = f'{url}/FORM2REGINFO/{state_info.get("id_f2r")}'
+        url_wb = f'{url}/WayBill_v4/{state_info.get("id_wb")}'
+        ttn_egais = state_info.get('ttn_egais')
+        response = await utm.send_divirgence_ttn(url_wb, url_f2r, await get_boxs(state_info.get('boxs')), ttn_egais)
+        if response.status_code == 200:
+            await utm.add_to_whitelist(url_wb, await get_boxs(state_info.get('boxs')), state_info.get('cash').split('-')[1])
+            async with httpx.AsyncClient() as client:
+                await client.delete(url_f2r)
+                await client.delete(url_wb)
+            log.success(f'Акт расхождения успешно отправлен "{ttn_egais}"')
+            await call.message.edit_text("✅Акт расхождения успешно отправлен\n")
+            await state.clear()
+        else:
+            log.error(f'Накладная не принята "{ttn_egais}". Код ошибки "{response.status_code}"')
+            text = texts.error_head + f'Попробуйте еще раз отправить акт расхождения. Код ошибки "{response.status_code}"'
+            await call.message.answer(text, reply_markup=getKeyboard_tehpod_url())
+    except Exception as e:
+        log.exception(e)
+        await call.message.edit_text(texts.error_head + e)
 
 
 async def back_to_accept_ttn(call: CallbackQuery, state: FSMContext):
